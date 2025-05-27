@@ -1,0 +1,1 @@
+// This file is not used because we're using minimal API in Program.cs
