@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using TinyHouse.Api.Models;
 
 namespace YourNamespace.Controllers
 {
@@ -9,19 +10,32 @@ namespace YourNamespace.Controllers
         [HttpPost]
         public IActionResult Login([FromBody] LoginRequest request)
         {
-            // Basit bir kontrol (ileride veritabanı ile kontrol edeceğiz)
+            // Sadece email ve password kontrolü, ekstra güvenlik yok
             if (request.Email == "test@example.com" && request.Password == "123456")
             {
-                return Ok(new { message = "Giriş başarılı" });
+                return Ok(new {
+                    token = "fake-jwt-token",
+                    user = new {
+                        id = 1,
+                        email = request.Email,
+                        role = request.Role ?? "tenant"
+                    }
+                });
             }
-
+            // Kayıtlı başka kullanıcılar için de giriş izni ver
+            if (request.Email == "user2@example.com" && request.Password == "123456")
+            {
+                return Ok(new {
+                    token = "fake-jwt-token-2",
+                    user = new {
+                        id = 2,
+                        email = request.Email,
+                        role = request.Role ?? "owner"
+                    }
+                });
+            }
+            // Ekstra güvenlik yok, sadece email ve şifre eşleşmesi yeterli
             return Unauthorized(new { message = "Geçersiz e-posta veya şifre" });
         }
-    }
-
-    public class LoginRequest
-    {
-        public string Email { get; set; }
-        public string Password { get; set; }
     }
 }

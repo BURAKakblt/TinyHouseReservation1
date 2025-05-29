@@ -10,7 +10,7 @@ export default function RootLayout({ children }) {
   const pathname = usePathname();
 
   // Navbar'ı gizlemek istediğimiz sayfalar
-  const hideNavbarPages = ["/host", "/admin"];
+  const hideNavbarPages = ["/host", "/admin", "/owner2/dashboard", "/owner2/add-house", "/owner2/edit-house"]; // owner2 sayfalarında navbar yok
   // Footer'ı gizlemek istediğimiz sayfalar
   const hideFooterPages = ["/admin"];
 

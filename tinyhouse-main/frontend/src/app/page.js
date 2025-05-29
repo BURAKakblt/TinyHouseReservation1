@@ -42,6 +42,7 @@ const HomePage = () => {
   const [childCount, setChildCount] = useState(0);
   const [favorites, setFavorites] = useState(houses.map(() => false));
   const [dbHouses, setDbHouses] = useState([]);
+  const [error, setError] = useState(null);
   const dropdownRef = useRef(null);
 
   const toggleFavorite = (index) => {
@@ -51,12 +52,22 @@ const HomePage = () => {
   };
 
   useEffect(() => {
-    const storedEmail = localStorage.getItem("email");
-    if (storedEmail) {
-      fetch(`http://localhost:5254/api/houses?email=${storedEmail}`)
-        .then((res) => res.json())
-        .then((data) => setDbHouses(data || []));
-    }
+    const fetchHouses = async () => {
+      try {
+        const response = await fetch('http://localhost:5254/api/houses/all');
+        if (!response.ok) {
+          throw new Error('Evler yüklenirken bir hata oluştu');
+        }
+        const data = await response.json();
+        console.log('API\'den gelen evler:', data);
+        setDbHouses(data || []);
+      } catch (err) {
+        console.error('API hatası:', err);
+        setError(err.message);
+      }
+    };
+
+    fetchHouses();
   }, []);
 
   useEffect(() => {
@@ -72,10 +83,10 @@ const HomePage = () => {
   const allHouses = [
     ...houses,
     ...dbHouses.map((ev) => ({
-      id: ev.id,
+      id: ev.houseID,
       location: `${ev.city}, ${ev.country}`,
-      beds: ev.bedroomCount,
-      baths: ev.bathroomCount,
+      beds: ev.bedrooms,
+      baths: ev.bathrooms,
       price: ev.pricePerNight,
       rating: ev.rating,
       image: "http://localhost:5254" + ev.coverImageUrl,
@@ -84,18 +95,24 @@ const HomePage = () => {
 
   const totalGuests = adultCount + childCount;
 
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f0f0f0]">
+        <div className="text-2xl text-red-600">{error}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center px-4 py-8 min-h-screen bg-[#f0f0f0]">
       <h1 className="text-4xl font-bold mb-6 text-black tracking-wide">Tiny House</h1>
-
-  
 
       {/* Ev Kartları */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-10 w-full max-w-6xl text-black">
         {allHouses.map((house, index) => (
           <Link
             key={house.id + "_" + index}
-            href={`/houses/home${house.id}`}
+            href={`/houses/home1?id=${house.id}`}
             className="block bg-white rounded-lg overflow-hidden shadow-md relative hover:shadow-xl transition-shadow duration-300"
           >
             <img src={house.image} alt={`Ev ${house.id}`} className="w-full h-48 object-cover" />
