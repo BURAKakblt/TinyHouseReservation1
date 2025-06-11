@@ -12,6 +12,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import { FiMenu, FiX } from "react-icons/fi";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -49,6 +50,7 @@ export default function OwnerDashboard() {
   const [popularHouses, setPopularHouses] = useState([]);
   const [favorites, setFavorites] = useState([]);
   const [userId, setUserId] = useState(null);
+  const email = typeof window !== 'undefined' ? localStorage.getItem("email") : "";
 
   useEffect(() => {
     const email = localStorage.getItem("email");
@@ -57,7 +59,12 @@ export default function OwnerDashboard() {
     
     // Popüler evleri getir
     fetch("http://localhost:5254/api/houses/popular")
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
         if (Array.isArray(data)) {
           setPopularHouses(data);
@@ -69,6 +76,7 @@ export default function OwnerDashboard() {
       .catch(error => {
         console.error("Popüler evler yüklenirken hata oluştu:", error);
         setPopularHouses([]);
+        setError("Popüler evler yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
       });
 
     if (uid) {
@@ -275,7 +283,7 @@ export default function OwnerDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 via-blue-50 to-gray-200">
-      {/* AppBar */}
+      {/* AppBar - Klasik Masaüstü Navbar */}
       <div className="sticky top-0 z-40 bg-white/90 shadow flex items-center justify-between px-8 py-4 border-b border-blue-100">
         <div className="flex items-center gap-4">
           <span className="text-2xl font-extrabold text-[#260B01] tracking-tight">MyTinyHouse</span>
@@ -283,10 +291,17 @@ export default function OwnerDashboard() {
           <button onClick={() => router.push("/owner2/add-house")} className="text-blue-700 font-bold px-3 py-1 rounded hover:bg-blue-100">Yeni Ev Ekle</button>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-black font-semibold">{localStorage.getItem("email")}</span>
-          <button onClick={() => router.push('/login')} className="bg-blue-600 text-white font-bold px-4 py-2 rounded-xl shadow hover:bg-blue-700 transition-all">Giriş Yap</button>
-          <button onClick={() => router.push('/signup')} className="bg-purple-500 text-white font-bold px-4 py-2 rounded-xl shadow hover:bg-purple-700 transition-all">Kaydol</button>
-          <button onClick={handleLogout} className="bg-gradient-to-r from-red-500 to-red-700 text-white font-bold px-4 py-2 rounded-xl shadow hover:from-red-600 hover:to-red-800 transition-all">Çıkış Yap</button>
+          {email ? (
+            <>
+              <span className="text-black font-semibold">{email}</span>
+              <button onClick={handleLogout} className="bg-gradient-to-r from-red-500 to-red-700 text-white font-bold px-4 py-2 rounded-xl shadow hover:from-red-600 hover:to-red-800 transition-all">Çıkış Yap</button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => router.push('/login')} className="bg-blue-600 text-white font-bold px-4 py-2 rounded-xl shadow hover:bg-blue-700 transition-all">Giriş Yap</button>
+              <button onClick={() => router.push('/signup')} className="bg-purple-500 text-white font-bold px-4 py-2 rounded-xl shadow hover:bg-purple-700 transition-all">Kaydol</button>
+            </>
+          )}
         </div>
       </div>
       {/* Filtre Alanı */}
@@ -522,42 +537,20 @@ export default function OwnerDashboard() {
                   : [])
             : [];
           return (
-            <div key={house.id || house.houseID || i} className="bg-white/90 rounded-2xl shadow-xl overflow-hidden border border-blue-100 flex flex-col hover:shadow-2xl transition-all group relative">
+            <div key={house.houseID ? `house-${house.houseID}` : `index-${i}`} className="bg-white/90 rounded-2xl shadow-xl overflow-hidden border border-blue-100 flex flex-col hover:shadow-2xl transition-all group relative">
               {/* Durum etiketi */}
-              <span className={`absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold ${house.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{house.status === 'active' ? 'Aktif' : 'Pasif'}</span>
-              {/* İsim ve Fiyat */}
-              <div className="p-4">
-                <h3 className="text-lg font-bold text-blue-700">{house.houseTitle || house.houseName || '-'}</h3>
-                <p className="text-sm text-black mt-1">Fiyat: {house.price?.toLocaleString('tr-TR')} ₺</p>
+              <div className="flex flex-col items-start gap-1 px-4 pt-4 pb-0">
+                <span className={`px-3 py-1 rounded-full text-xs font-bold mb-1 ${house.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{house.status === 'active' ? 'Aktif' : 'Pasif'}</span>
+                <span className="text-xs text-gray-600">Şehir: <span className="font-semibold">{house.city || '-'}</span></span>
+                <span className="text-xs text-gray-600">Fiyat: <span className="font-semibold">{house.price?.toLocaleString('tr-TR') || '-'} ₺</span></span>
               </div>
               {/* İşlemler */}
-              <div className="p-4 border-t border-blue-100 flex items-center justify-between">
+              <div className="flex flex-col gap-2 p-4 pt-0">
                 <button
-                  onClick={() => {
-                    setSelectedReview(null);
-                    setShowReviewModal(true);
-                  }}
-                  className="text-indigo-700 hover:text-indigo-900 font-bold"
+                  className="bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  onClick={() => router.push(`/owner2/house/${house.houseID || house.id}`)}
                 >
-                  Yorum
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedReview(null);
-                    setShowReviewModal(true);
-                  }}
-                  className="text-indigo-700 hover:text-indigo-900 font-bold"
-                >
-                  Ödeme
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedReview(null);
-                    setShowReviewModal(true);
-                  }}
-                  className="text-indigo-700 hover:text-indigo-900 font-bold"
-                >
-                  Rezervasyon
+                  Detay
                 </button>
               </div>
             </div>
@@ -569,8 +562,8 @@ export default function OwnerDashboard() {
         <h3 className="text-lg font-bold mb-4 text-black">Popüler Evler</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {popularHouses && popularHouses.length > 0 ? (
-            popularHouses.map((house) => (
-              <div key={house.HouseID} className="bg-white rounded-xl shadow p-4 border border-blue-100">
+            popularHouses.map((house, i) => (
+              <div key={house.HouseID ? `popular-${house.HouseID}` : `popular-index-${i}`} className="bg-white rounded-xl shadow p-4 border border-blue-100">
                 <img 
                   src={house.CoverImageUrl ? `http://localhost:5254${house.CoverImageUrl}` : "/default-house.jpg"} 
                   alt={house.Title} 
