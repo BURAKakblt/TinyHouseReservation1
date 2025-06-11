@@ -43,9 +43,39 @@ export default function OwnerDashboard() {
   const [deleteId, setDeleteId] = useState(null);
   const [toast, setToast] = useState("");
   const [filter, setFilter] = useState({ city: "", status: "", minPrice: "", maxPrice: "" });
+  const [selectedReview, setSelectedReview] = useState(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewResponse, setReviewResponse] = useState("");
+  const [popularHouses, setPopularHouses] = useState([]);
+  const [favorites, setFavorites] = useState([]);
+  const [userId, setUserId] = useState(null);
 
   useEffect(() => {
     const email = localStorage.getItem("email");
+    const uid = localStorage.getItem("userId");
+    setUserId(uid);
+    
+    // Popüler evleri getir
+    fetch("http://localhost:5254/api/houses/popular")
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setPopularHouses(data);
+        } else {
+          console.error("API'den gelen veri bir dizi değil:", data);
+          setPopularHouses([]);
+        }
+      })
+      .catch(error => {
+        console.error("Popüler evler yüklenirken hata oluştu:", error);
+        setPopularHouses([]);
+      });
+
+    if (uid) {
+      fetch(`http://localhost:5254/api/favorites/${uid}`)
+        .then(res => res.json())
+        .then(setFavorites);
+    }
     if (!email) {
       router.push("/login");
       setError("Giriş yapmadınız. Lütfen tekrar giriş yapın.");
@@ -180,6 +210,42 @@ export default function OwnerDashboard() {
     },
   };
 
+  const handleReviewResponse = async (reviewId) => {
+    try {
+      const response = await fetch(`http://localhost:5254/api/reviews/${reviewId}/response`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ response: reviewResponse })
+      });
+      if (response.ok) {
+        fetchOwnerStats(localStorage.getItem('email'));
+        setShowReviewModal(false);
+        setReviewResponse("");
+      } else {
+        setToast('Cevap kaydedilemedi!');
+      }
+    } catch (err) {
+      setToast('Sunucu hatası!');
+    }
+  };
+
+  const handleFavorite = async (houseId, isFav) => {
+    if (!userId) return;
+    if (isFav) {
+      await fetch(`http://localhost:5254/api/favorites?userId=${userId}&houseId=${houseId}`, { method: "DELETE" });
+    } else {
+      await fetch("http://localhost:5254/api/favorites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ UserID: userId, HouseID: houseId })
+      });
+    }
+    // Favoriler listesini güncelle
+    fetch(`http://localhost:5254/api/favorites/${userId}`)
+      .then(res => res.json())
+      .then(setFavorites);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 p-6 flex items-center justify-center">
@@ -294,6 +360,8 @@ export default function OwnerDashboard() {
                   <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700">Puan</th>
                   <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700">Yorum</th>
                   <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700">Kullanıcı</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700">Cevap</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700">İşlem</th>
                 </tr>
               </thead>
               <tbody>
@@ -302,16 +370,77 @@ export default function OwnerDashboard() {
                     <td className="px-4 py-2 text-yellow-600 font-bold">{r.rating}</td>
                     <td className="px-4 py-2 text-black">{r.comment}</td>
                     <td className="px-4 py-2 text-gray-700">{r.tenantEmail || r.userEmail || "-"}</td>
+                    <td className="px-4 py-2 text-black">{r.response || '-'}</td>
+                    <td className="px-4 py-2">
+                      <button
+                        onClick={() => {
+                          setSelectedReview(r);
+                          setReviewResponse(r.response || "");
+                          setShowReviewModal(true);
+                        }}
+                        className="text-indigo-700 hover:text-indigo-900 font-bold"
+                      >
+                        {r.response ? 'Cevabı Düzenle' : 'Cevap Yaz'}
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {reviews.length === 0 && (
-                  <tr><td colSpan={3} className="px-4 py-2 text-gray-400">Yorum yok</td></tr>
+                  <tr><td colSpan={5} className="px-4 py-2 text-gray-400">Yorum yok</td></tr>
                 )}
               </tbody>
             </table>
           </div>
         </div>
       </div>
+      {/* Yorum Detay Modalı */}
+      {showReviewModal && selectedReview && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-bold text-black mb-4">Yorum Detayları</h3>
+              <div className="space-y-3">
+                <p className="text-black">
+                  <span className="font-bold">Kullanıcı:</span> {selectedReview.tenantEmail || selectedReview.userEmail || "-"}
+                </p>
+                <p className="text-black">
+                  <span className="font-bold">Puan:</span> {selectedReview.rating}/5
+                </p>
+                <p className="text-black">
+                  <span className="font-bold">Yorum:</span> {selectedReview.comment}
+                </p>
+                <div className="mt-4">
+                  <label className="block text-sm font-bold text-black mb-2">
+                    Cevabınız:
+                  </label>
+                  <textarea
+                    value={reviewResponse}
+                    onChange={(e) => setReviewResponse(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    rows="4"
+                    placeholder="Cevabınızı buraya yazın..."
+                  />
+                </div>
+                <button
+                  onClick={() => handleReviewResponse(selectedReview.reviewID)}
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+                >
+                  Kaydet
+                </button>
+                <button
+                  onClick={() => {
+                    setShowReviewModal(false);
+                    setReviewResponse("");
+                  }}
+                  className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors ml-2"
+                >
+                  İptal
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Son Rezervasyonlar Tablosu */}
       <div className="max-w-7xl mx-auto mb-8 px-4">
         <div className="bg-white rounded-xl shadow p-6 border border-blue-100">
@@ -384,98 +513,86 @@ export default function OwnerDashboard() {
       </div>
       {/* Ev Kartları */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4 pb-12">
-        {filteredHouses.map((house, i) => (
-          <div key={house.id || house.houseID || i} className="bg-white/90 rounded-2xl shadow-xl overflow-hidden border border-blue-100 flex flex-col hover:shadow-2xl transition-all group relative">
-            {/* Durum etiketi */}
-            <span className={`absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold ${house.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{house.status === 'active' ? 'Aktif' : 'Pasif'}</span>
-            <img
-              src={house.coverImageUrl ? `http://localhost:5254${house.coverImageUrl}` : "/default-house.jpg"}
-              alt={house.title}
-              className="w-full h-48 object-cover"
-            />
-            <div className="p-6 flex flex-col flex-1">
-              <h3 className="font-bold text-xl mb-1 text-black truncate">{house.title}</h3>
-              <p className="text-gray-600 mb-2 text-base">{house.city}, {house.country}</p>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-blue-700 font-bold text-lg">{house.price} TL/gece</span>
-                <div className="flex items-center">
-                  <span className="text-yellow-400 text-lg">★</span>
-                  <span className="ml-1 text-black font-semibold">{house.rating || "Henüz değerlendirilmemiş"}</span>
-                </div>
+        {filteredHouses.map((house, i) => {
+          const featuresArray = house.features
+            ? (typeof house.features === "string"
+                ? house.features.split(",").map(f => f.trim()).filter(f => f)
+                : Array.isArray(house.features)
+                  ? house.features
+                  : [])
+            : [];
+          return (
+            <div key={house.id || house.houseID || i} className="bg-white/90 rounded-2xl shadow-xl overflow-hidden border border-blue-100 flex flex-col hover:shadow-2xl transition-all group relative">
+              {/* Durum etiketi */}
+              <span className={`absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold ${house.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{house.status === 'active' ? 'Aktif' : 'Pasif'}</span>
+              {/* İsim ve Fiyat */}
+              <div className="p-4">
+                <h3 className="text-lg font-bold text-blue-700">{house.houseTitle || house.houseName || '-'}</h3>
+                <p className="text-sm text-black mt-1">Fiyat: {house.price?.toLocaleString('tr-TR')} ₺</p>
               </div>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {house.features && house.features.slice(0, 3).map((feature, i) => (
-                  <span key={i} className="bg-gray-100 text-black px-3 py-1 rounded-full text-xs">{feature}</span>
-                ))}
-                {house.features && house.features.length > 3 && (
-                  <span className="bg-gray-100 text-black px-3 py-1 rounded-full text-xs">+{house.features.length - 3}</span>
-                )}
-              </div>
-              <div className="flex gap-2 mt-auto">
+              {/* İşlemler */}
+              <div className="p-4 border-t border-blue-100 flex items-center justify-between">
                 <button
-                  onClick={() => router.push(`/owner2/edit-house/${house.id || house.houseID}`)}
-                  className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white py-2 rounded-xl font-bold shadow hover:from-green-600 hover:to-green-700 transition-all"
+                  onClick={() => {
+                    setSelectedReview(null);
+                    setShowReviewModal(true);
+                  }}
+                  className="text-indigo-700 hover:text-indigo-900 font-bold"
                 >
-                  Düzenle
+                  Yorum
                 </button>
                 <button
-                  onClick={() => { setShowDeleteModal(true); setDeleteId(house.id || house.houseID); }}
-                  className="flex-1 bg-gradient-to-r from-red-500 to-red-700 text-white py-2 rounded-xl font-bold shadow hover:from-red-600 hover:to-red-800 transition-all"
+                  onClick={() => {
+                    setSelectedReview(null);
+                    setShowReviewModal(true);
+                  }}
+                  className="text-indigo-700 hover:text-indigo-900 font-bold"
                 >
-                  Sil
+                  Ödeme
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedReview(null);
+                    setShowReviewModal(true);
+                  }}
+                  className="text-indigo-700 hover:text-indigo-900 font-bold"
+                >
+                  Rezervasyon
                 </button>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
-      <DeleteModal
-        open={showDeleteModal}
-        onConfirm={() => handleDeleteHouse(deleteId)}
-        onCancel={() => { setShowDeleteModal(false); setDeleteId(null); }}
-        deleting={deleting}
-      />
-      <style jsx>{`
-        @keyframes fade-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        .animate-fade-in { animation: fade-in 0.2s ease; }
-      `}</style>
+      {/* Popüler Evler */}
+      <div className="max-w-7xl mx-auto mb-8 px-4">
+        <h3 className="text-lg font-bold mb-4 text-black">Popüler Evler</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {popularHouses && popularHouses.length > 0 ? (
+            popularHouses.map((house) => (
+              <div key={house.HouseID} className="bg-white rounded-xl shadow p-4 border border-blue-100">
+                <img 
+                  src={house.CoverImageUrl ? `http://localhost:5254${house.CoverImageUrl}` : "/default-house.jpg"} 
+                  alt={house.Title} 
+                  className="w-full h-32 object-cover rounded" 
+                />
+                <h4 className="font-bold mt-2">{house.Title}</h4>
+                <p className="text-gray-600">{house.City}, {house.Country}</p>
+                <p className="text-yellow-600 font-bold">★ {house.Rating?.toFixed(1) || "Henüz değerlendirilmemiş"}</p>
+                <p className="text-blue-700 font-bold">{house.PricePerNight?.toLocaleString('tr-TR')} TL/gece</p>
+                <button 
+                  onClick={() => handleFavorite(house.HouseID, favorites.some(f => f.HouseID === house.HouseID))} 
+                  className="mt-2 w-full bg-blue-100 text-blue-700 py-2 rounded-lg hover:bg-blue-200 transition-colors"
+                >
+                  {favorites.some(f => f.HouseID === house.HouseID) ? "❤️ Favori" : "🤍 Favorilere Ekle"}
+                </button>
+              </div>
+            ))
+          ) : (
+            <div className="col-span-3 text-center text-gray-500">Henüz popüler ev bulunmuyor.</div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
-
-function DeleteModal({ open, onConfirm, onCancel, deleting }) {
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center border border-red-200 animate-fade-in">
-        <h2 className="text-xl font-bold text-red-700 mb-4">Evi Sil</h2>
-        <p className="mb-6 text-black">Bu evi silmek istediğinize emin misiniz?</p>
-        <div className="flex gap-4 justify-center">
-          <button
-            onClick={onConfirm}
-            disabled={deleting}
-            className={`flex-1 py-2 rounded-lg font-bold shadow bg-gradient-to-r from-red-500 to-red-700 text-white hover:from-red-600 hover:to-red-800 transition-all duration-200 disabled:opacity-50 ${deleting ? 'cursor-not-allowed' : ''}`}
-          >
-            {deleting ? <span className="animate-pulse">Siliniyor...</span> : "Evet, Sil"}
-          </button>
-          <button
-            onClick={onCancel}
-            disabled={deleting}
-            className="flex-1 py-2 rounded-lg font-bold shadow bg-gray-200 text-black hover:bg-gray-300 transition-all duration-200"
-          >
-            Vazgeç
-          </button>
-        </div>
-      </div>
-      <style jsx>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.2s ease;
-        }
-      `}</style>
-    </div>
-  );
-} 

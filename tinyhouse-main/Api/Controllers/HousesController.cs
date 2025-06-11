@@ -1,153 +1,221 @@
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Linq;
+using TinyHouse.Api.Data;
+using TinyHouse.Api.Models;
+using System.Data;
 
-namespace YourNamespace.Controllers
+namespace Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     public class HousesController : ControllerBase
     {
-        private static List<House> _houses = new List<House>
+        private readonly DatabaseHelper _db;
+        private readonly ILogger<HousesController> _logger;
+
+        public HousesController(DatabaseHelper db, ILogger<HousesController> logger)
         {
-            new House
-            {
-                HouseID = 1,
-                Title = "Modern Tiny House",
-                Description = "Doğayla iç içe modern bir yaşam deneyimi sunan tiny house. Şehir hayatından uzak, huzurlu bir tatil için ideal.",
-                PricePerNight = 500,
-                HouseType = "Tiny House",
-                City = "İstanbul",
-                Country = "Türkiye",
-                MaxGuests = 2,
-                Bedrooms = 1,
-                Rating = 4.5,
-                CoverImageUrl = "/images/house1.jpg",
-                Images = new List<string> 
-                { 
-                    "/images/house1.jpg",
-                    "/images/house1-interior1.jpg",
-                    "/images/house1-interior2.jpg",
-                    "/images/house1-exterior.jpg"
-                },
-                Features = new List<string> 
-                { 
-                    "WiFi", 
-                    "Klima", 
-                    "Mutfak", 
-                    "TV", 
-                    "Park Yeri",
-                    "Bahçe",
-                    "Barbekü",
-                    "Jakuzi"
-                },
-                OwnerID = 1,
-                IsAvailable = true
-            },
-            new House
-            {
-                HouseID = 2,
-                Title = "Ahşap Tiny House",
-                Description = "Geleneksel ahşap mimarisi ile modern konforu bir araya getiren tiny house. Doğal malzemeler ve şık tasarım.",
-                PricePerNight = 450,
-                HouseType = "Tiny House",
-                City = "İzmir",
-                Country = "Türkiye",
-                MaxGuests = 3,
-                Bedrooms = 1,
-                Rating = 4.8,
-                CoverImageUrl = "/images/house2.jpg",
-                Images = new List<string> 
-                { 
-                    "/images/house2.jpg",
-                    "/images/house2-interior1.jpg",
-                    "/images/house2-interior2.jpg",
-                    "/images/house2-exterior.jpg"
-                },
-                Features = new List<string> 
-                { 
-                    "WiFi", 
-                    "Klima", 
-                    "Mutfak", 
-                    "TV", 
-                    "Park Yeri", 
-                    "Bahçe",
-                    "Şömine",
-                    "Çamaşır Makinesi"
-                },
-                OwnerID = 2,
-                IsAvailable = true
-            }
-        };
+            _db = db;
+            _logger = logger;
+        }
 
         [HttpGet]
-        public IActionResult GetAllHouses([FromQuery] bool? available = true)
+        public async Task<ActionResult<IEnumerable<House>>> GetHouses([FromQuery] bool? available)
         {
             try
             {
-                var houses = _houses;
+                var query = "SELECT * FROM Houses";
+                var parameters = new Dictionary<string, object>();
+
                 if (available.HasValue)
                 {
-                    houses = houses.Where(h => h.IsAvailable == available.Value).ToList();
+                    query += " WHERE IsAvailable = @IsAvailable";
+                    parameters.Add("@IsAvailable", available.Value);
                 }
+
+                var dataTable = await _db.ExecuteQueryAsync(query, parameters);
+                var houses = new List<House>();
+
+                foreach (DataRow row in dataTable.Rows)
+                {
+                    houses.Add(new House
+                    {
+                        HouseID = row.Table.Columns.Contains("HouseID") && row["HouseID"] != DBNull.Value ? Convert.ToInt32(row["HouseID"]) : 0,
+                        OwnerID = row.Table.Columns.Contains("OwnerID") && row["OwnerID"] != DBNull.Value ? Convert.ToInt32(row["OwnerID"]) : 0,
+                        Title = row.Table.Columns.Contains("Title") && row["Title"] != DBNull.Value ? row["Title"].ToString() ?? "" : "",
+                        Description = row.Table.Columns.Contains("Description") && row["Description"] != DBNull.Value ? row["Description"].ToString() ?? "" : "",
+                        City = row.Table.Columns.Contains("City") && row["City"] != DBNull.Value ? row["City"].ToString() ?? "" : "",
+                        Country = row.Table.Columns.Contains("Country") && row["Country"] != DBNull.Value ? row["Country"].ToString() ?? "" : "",
+                        Bedrooms = row.Table.Columns.Contains("Bedrooms") && row["Bedrooms"] != DBNull.Value ? Convert.ToInt32(row["Bedrooms"]) : 0,
+                        Bathrooms = row.Table.Columns.Contains("Bathrooms") && row["Bathrooms"] != DBNull.Value ? Convert.ToInt32(row["Bathrooms"]) : 0,
+                        PricePerNight = row.Table.Columns.Contains("PricePerNight") && row["PricePerNight"] != DBNull.Value ? Convert.ToDecimal(row["PricePerNight"]) : 0,
+                        CoverImageUrl = row.Table.Columns.Contains("CoverImageUrl") && row["CoverImageUrl"] != DBNull.Value ? row["CoverImageUrl"].ToString() ?? "" : "",
+                        TotalReservations = row.Table.Columns.Contains("TotalReservations") && row["TotalReservations"] != DBNull.Value ? Convert.ToInt32(row["TotalReservations"]) : 0,
+                        Rating = row.Table.Columns.Contains("Rating") && row["Rating"] != DBNull.Value ? Convert.ToDouble(row["Rating"]) : 0,
+                        InteriorImageUrl = row.Table.Columns.Contains("InteriorImageUrl") && row["InteriorImageUrl"] != DBNull.Value ? row["InteriorImageUrl"].ToString() ?? "" : "",
+                        IsAvailable = row.Table.Columns.Contains("IsAvailable") && row["IsAvailable"] != DBNull.Value ? (bool?)Convert.ToBoolean(row["IsAvailable"]) : null,
+                        HouseType = row.Table.Columns.Contains("HouseType") && row["HouseType"] != DBNull.Value ? row["HouseType"].ToString() ?? "" : "",
+                        MaxGuests = row.Table.Columns.Contains("MaxGuests") && row["MaxGuests"] != DBNull.Value ? (int?)Convert.ToInt32(row["MaxGuests"]) : null,
+                        Features = row.Table.Columns.Contains("Features") && row["Features"] != DBNull.Value ? row["Features"].ToString() ?? "" : "",
+                        Location = row.Table.Columns.Contains("Location") && row["Location"] != DBNull.Value ? row["Location"].ToString() ?? "" : ""
+                    });
+                }
+
                 return Ok(houses);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Evler listelenirken bir hata oluştu", error = ex.Message });
+                _logger.LogError(ex, "Error getting houses");
+                return StatusCode(500, new { message = $"Evler getirilirken bir hata oluştu: {ex.Message}" });
             }
         }
 
         [HttpGet("{id}")]
-        public IActionResult GetHouseById(int id)
+        public async Task<ActionResult<House>> GetHouse(int id)
         {
             try
             {
-                var house = _houses.FirstOrDefault(h => h.HouseID == id);
-                if (house == null)
+                var query = "SELECT * FROM Houses WHERE HouseID = @HouseID";
+                var parameters = new Dictionary<string, object>
                 {
-                    return NotFound(new { message = "Ev bulunamadı" });
+                    { "@HouseID", id }
+                };
+
+                var dataTable = await _db.ExecuteQueryAsync(query, parameters);
+
+                if (dataTable.Rows.Count == 0)
+                {
+                    return NotFound(new { message = "Ev bulunamadı." });
                 }
+
+                var row = dataTable.Rows[0];
+                var house = new House
+                {
+                    HouseID = row.Table.Columns.Contains("HouseID") && row["HouseID"] != DBNull.Value ? Convert.ToInt32(row["HouseID"]) : 0,
+                    OwnerID = row.Table.Columns.Contains("OwnerID") && row["OwnerID"] != DBNull.Value ? Convert.ToInt32(row["OwnerID"]) : 0,
+                    Title = row.Table.Columns.Contains("Title") && row["Title"] != DBNull.Value ? row["Title"].ToString() ?? "" : "",
+                    Description = row.Table.Columns.Contains("Description") && row["Description"] != DBNull.Value ? row["Description"].ToString() ?? "" : "",
+                    City = row.Table.Columns.Contains("City") && row["City"] != DBNull.Value ? row["City"].ToString() ?? "" : "",
+                    Country = row.Table.Columns.Contains("Country") && row["Country"] != DBNull.Value ? row["Country"].ToString() ?? "" : "",
+                    Bedrooms = row.Table.Columns.Contains("Bedrooms") && row["Bedrooms"] != DBNull.Value ? Convert.ToInt32(row["Bedrooms"]) : 0,
+                    Bathrooms = row.Table.Columns.Contains("Bathrooms") && row["Bathrooms"] != DBNull.Value ? Convert.ToInt32(row["Bathrooms"]) : 0,
+                    PricePerNight = row.Table.Columns.Contains("PricePerNight") && row["PricePerNight"] != DBNull.Value ? Convert.ToDecimal(row["PricePerNight"]) : 0,
+                    CoverImageUrl = row.Table.Columns.Contains("CoverImageUrl") && row["CoverImageUrl"] != DBNull.Value ? row["CoverImageUrl"].ToString() ?? "" : "",
+                    TotalReservations = row.Table.Columns.Contains("TotalReservations") && row["TotalReservations"] != DBNull.Value ? Convert.ToInt32(row["TotalReservations"]) : 0,
+                    Rating = row.Table.Columns.Contains("Rating") && row["Rating"] != DBNull.Value ? Convert.ToDouble(row["Rating"]) : 0,
+                    InteriorImageUrl = row.Table.Columns.Contains("InteriorImageUrl") && row["InteriorImageUrl"] != DBNull.Value ? row["InteriorImageUrl"].ToString() ?? "" : "",
+                    IsAvailable = row.Table.Columns.Contains("IsAvailable") && row["IsAvailable"] != DBNull.Value ? (bool?)Convert.ToBoolean(row["IsAvailable"]) : null,
+                    HouseType = row.Table.Columns.Contains("HouseType") && row["HouseType"] != DBNull.Value ? row["HouseType"].ToString() ?? "" : "",
+                    MaxGuests = row.Table.Columns.Contains("MaxGuests") && row["MaxGuests"] != DBNull.Value ? (int?)Convert.ToInt32(row["MaxGuests"]) : null,
+                    Features = row.Table.Columns.Contains("Features") && row["Features"] != DBNull.Value ? row["Features"].ToString() ?? "" : "",
+                    Location = row.Table.Columns.Contains("Location") && row["Location"] != DBNull.Value ? row["Location"].ToString() ?? "" : ""
+                };
 
                 return Ok(house);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Ev detayları alınırken bir hata oluştu", error = ex.Message });
+                _logger.LogError(ex, "Error getting house with id: {Id}", id);
+                return StatusCode(500, new { message = $"Ev getirilirken bir hata oluştu: {ex.Message}" });
             }
         }
 
-        [HttpGet("by-owner/{ownerId}")]
-        public IActionResult GetHousesByOwner(int ownerId)
+        [HttpGet("by-owner")]
+        public async Task<IActionResult> GetHousesByOwner([FromQuery] string email)
         {
             try
             {
-                var houses = _houses.Where(h => h.OwnerID == ownerId).ToList();
+                var query = "SELECT * FROM Houses WHERE OwnerID = (SELECT UserID FROM Users WHERE Email = @Email)";
+                var parameters = new Dictionary<string, object> { { "@Email", email } };
+                var dataTable = await _db.ExecuteQueryAsync(query, parameters);
+                var houses = new List<House>();
+                foreach (DataRow row in dataTable.Rows)
+                {
+                    houses.Add(new House
+                    {
+                        HouseID = row.Table.Columns.Contains("HouseID") && row["HouseID"] != DBNull.Value ? Convert.ToInt32(row["HouseID"]) : 0,
+                        OwnerID = row.Table.Columns.Contains("OwnerID") && row["OwnerID"] != DBNull.Value ? Convert.ToInt32(row["OwnerID"]) : 0,
+                        Title = row.Table.Columns.Contains("Title") && row["Title"] != DBNull.Value ? row["Title"].ToString() ?? "" : "",
+                        Description = row.Table.Columns.Contains("Description") && row["Description"] != DBNull.Value ? row["Description"].ToString() ?? "" : "",
+                        City = row.Table.Columns.Contains("City") && row["City"] != DBNull.Value ? row["City"].ToString() ?? "" : "",
+                        Country = row.Table.Columns.Contains("Country") && row["Country"] != DBNull.Value ? row["Country"].ToString() ?? "" : "",
+                        Bedrooms = row.Table.Columns.Contains("Bedrooms") && row["Bedrooms"] != DBNull.Value ? Convert.ToInt32(row["Bedrooms"]) : 0,
+                        Bathrooms = row.Table.Columns.Contains("Bathrooms") && row["Bathrooms"] != DBNull.Value ? Convert.ToInt32(row["Bathrooms"]) : 0,
+                        PricePerNight = row.Table.Columns.Contains("PricePerNight") && row["PricePerNight"] != DBNull.Value ? Convert.ToDecimal(row["PricePerNight"]) : 0,
+                        CoverImageUrl = row.Table.Columns.Contains("CoverImageUrl") && row["CoverImageUrl"] != DBNull.Value ? row["CoverImageUrl"].ToString() ?? "" : "",
+                        TotalReservations = row.Table.Columns.Contains("TotalReservations") && row["TotalReservations"] != DBNull.Value ? Convert.ToInt32(row["TotalReservations"]) : 0,
+                        Rating = row.Table.Columns.Contains("Rating") && row["Rating"] != DBNull.Value ? Convert.ToDouble(row["Rating"]) : 0,
+                        InteriorImageUrl = row.Table.Columns.Contains("InteriorImageUrl") && row["InteriorImageUrl"] != DBNull.Value ? row["InteriorImageUrl"].ToString() ?? "" : "",
+                        IsAvailable = row.Table.Columns.Contains("IsAvailable") && row["IsAvailable"] != DBNull.Value ? (bool?)Convert.ToBoolean(row["IsAvailable"]) : null,
+                        HouseType = row.Table.Columns.Contains("HouseType") && row["HouseType"] != DBNull.Value ? row["HouseType"].ToString() ?? "" : "",
+                        MaxGuests = row.Table.Columns.Contains("MaxGuests") && row["MaxGuests"] != DBNull.Value ? (int?)Convert.ToInt32(row["MaxGuests"]) : null,
+                        Features = row.Table.Columns.Contains("Features") && row["Features"] != DBNull.Value ? row["Features"].ToString() ?? "" : "",
+                        Location = row.Table.Columns.Contains("Location") && row["Location"] != DBNull.Value ? row["Location"].ToString() ?? "" : ""
+                    });
+                }
                 return Ok(houses);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Ev sahibinin evleri listelenirken bir hata oluştu", error = ex.Message });
+                _logger.LogError(ex, "Error getting houses by owner");
+                return StatusCode(500, new { message = $"Evler getirilirken bir hata oluştu: {ex.Message}" });
             }
         }
-    }
 
-    public class House
-    {
-        public int HouseID { get; set; }
-        public string Title { get; set; }
-        public string Description { get; set; }
-        public decimal PricePerNight { get; set; }
-        public string HouseType { get; set; }
-        public string City { get; set; }
-        public string Country { get; set; }
-        public int MaxGuests { get; set; }
-        public int Bedrooms { get; set; }
-        public double Rating { get; set; }
-        public string CoverImageUrl { get; set; }
-        public List<string> Images { get; set; }
-        public List<string> Features { get; set; }
-        public int OwnerID { get; set; }
-        public bool IsAvailable { get; set; }
+        [HttpGet("popular")]
+        public async Task<ActionResult<IEnumerable<House>>> GetPopularHouses()
+        {
+            try
+            {
+                var query = @"
+                    SELECT TOP 6 h.HouseID, h.OwnerID, h.Title, h.Description, h.City, h.Country,
+                           h.Bedrooms, h.Bathrooms, h.PricePerNight, h.CoverImageUrl,
+                           h.InteriorImageUrl, h.IsAvailable, h.HouseType, h.MaxGuests,
+                           h.Features, h.Location,
+                           COUNT(r.ReservationID) as TotalReservations,
+                           AVG(CAST(r.Rating as FLOAT)) as Rating
+                    FROM Houses h
+                    LEFT JOIN Reservations r ON h.HouseID = r.HouseID
+                    GROUP BY h.HouseID, h.OwnerID, h.Title, h.Description, h.City, h.Country,
+                             h.Bedrooms, h.Bathrooms, h.PricePerNight, h.CoverImageUrl,
+                             h.InteriorImageUrl, h.IsAvailable, h.HouseType, h.MaxGuests,
+                             h.Features, h.Location
+                    ORDER BY TotalReservations DESC, Rating DESC";
+
+                var dataTable = await _db.ExecuteQueryAsync(query);
+                var houses = new List<House>();
+
+                foreach (DataRow row in dataTable.Rows)
+                {
+                    houses.Add(new House
+                    {
+                        HouseID = row.Table.Columns.Contains("HouseID") && row["HouseID"] != DBNull.Value ? Convert.ToInt32(row["HouseID"]) : 0,
+                        OwnerID = row.Table.Columns.Contains("OwnerID") && row["OwnerID"] != DBNull.Value ? Convert.ToInt32(row["OwnerID"]) : 0,
+                        Title = row.Table.Columns.Contains("Title") && row["Title"] != DBNull.Value ? row["Title"].ToString() ?? "" : "",
+                        Description = row.Table.Columns.Contains("Description") && row["Description"] != DBNull.Value ? row["Description"].ToString() ?? "" : "",
+                        City = row.Table.Columns.Contains("City") && row["City"] != DBNull.Value ? row["City"].ToString() ?? "" : "",
+                        Country = row.Table.Columns.Contains("Country") && row["Country"] != DBNull.Value ? row["Country"].ToString() ?? "" : "",
+                        Bedrooms = row.Table.Columns.Contains("Bedrooms") && row["Bedrooms"] != DBNull.Value ? Convert.ToInt32(row["Bedrooms"]) : 0,
+                        Bathrooms = row.Table.Columns.Contains("Bathrooms") && row["Bathrooms"] != DBNull.Value ? Convert.ToInt32(row["Bathrooms"]) : 0,
+                        PricePerNight = row.Table.Columns.Contains("PricePerNight") && row["PricePerNight"] != DBNull.Value ? Convert.ToDecimal(row["PricePerNight"]) : 0,
+                        CoverImageUrl = row.Table.Columns.Contains("CoverImageUrl") && row["CoverImageUrl"] != DBNull.Value ? row["CoverImageUrl"].ToString() ?? "" : "",
+                        TotalReservations = row.Table.Columns.Contains("TotalReservations") && row["TotalReservations"] != DBNull.Value ? Convert.ToInt32(row["TotalReservations"]) : 0,
+                        Rating = row.Table.Columns.Contains("Rating") && row["Rating"] != DBNull.Value ? Convert.ToDouble(row["Rating"]) : 0,
+                        InteriorImageUrl = row.Table.Columns.Contains("InteriorImageUrl") && row["InteriorImageUrl"] != DBNull.Value ? row["InteriorImageUrl"].ToString() ?? "" : "",
+                        IsAvailable = row.Table.Columns.Contains("IsAvailable") && row["IsAvailable"] != DBNull.Value ? (bool?)Convert.ToBoolean(row["IsAvailable"]) : null,
+                        HouseType = row.Table.Columns.Contains("HouseType") && row["HouseType"] != DBNull.Value ? row["HouseType"].ToString() ?? "" : "",
+                        MaxGuests = row.Table.Columns.Contains("MaxGuests") && row["MaxGuests"] != DBNull.Value ? (int?)Convert.ToInt32(row["MaxGuests"]) : null,
+                        Features = row.Table.Columns.Contains("Features") && row["Features"] != DBNull.Value ? row["Features"].ToString() ?? "" : "",
+                        Location = row.Table.Columns.Contains("Location") && row["Location"] != DBNull.Value ? row["Location"].ToString() ?? "" : ""
+                    });
+                }
+
+                return Ok(houses);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting popular houses");
+                return StatusCode(500, new { message = $"Popüler evler getirilirken bir hata oluştu: {ex.Message}" });
+            }
+        }
     }
 } 

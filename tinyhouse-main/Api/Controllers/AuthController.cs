@@ -70,7 +70,7 @@ namespace Api.Controllers
                     token,
                     user = new
                     {
-                        id = user.Id,
+                        id = user.UserID,
                         email = user.Email,
                         role = user.Role,
                         firstName = user.FirstName,
@@ -85,6 +85,35 @@ namespace Api.Controllers
             }
         }
 
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] SignupRequest request)
+        {
+            if (string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password) || string.IsNullOrEmpty(request.Username))
+            {
+                return BadRequest(new { message = "Tüm alanlar zorunludur." });
+            }
+
+            // Aynı e-posta ile aynı rol için kayıt var mı?
+            var existingUser = await _userService.GetUserByEmail(request.Email);
+            if (existingUser != null)
+            {
+                return BadRequest(new { message = "Bu e-posta ile zaten bir kullanıcı mevcut." });
+            }
+
+            // Şifreyi hashle
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            var user = new User
+            {
+                Email = request.Email,
+                PasswordHash = passwordHash,
+                FirstName = request.Username,
+                LastName = "",
+                Role = request.RoleID == 2 ? "owner" : request.RoleID == 3 ? "tenant" : "user"
+            };
+            await _userService.CreateUser(user);
+            return Ok(new { message = "Kayıt başarılı!" });
+        }
+
         private string GenerateJwtToken(User user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -93,7 +122,7 @@ namespace Api.Controllers
             {
                 Subject = new ClaimsIdentity(new[]
                 {
-                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                    new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
                     new Claim(ClaimTypes.Email, user.Email),
                     new Claim(ClaimTypes.Role, user.Role)
                 }),

@@ -5,6 +5,7 @@ import "./globals.css";
 import Navbar from "../components/Navbar";
 import Footer from "../components/footer";
 import { metadata } from "./metadata"; // metadata'yı buradan alıyoruz
+import { ToastProvider } from "../components/ToastContext";
 
 export default function RootLayout({ children }) {
   const pathname = usePathname();
@@ -17,13 +18,15 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        {/* Navbar sadece belirli sayfalarda gösterilecek */}
-        {!hideNavbarPages.includes(pathname) && <Navbar />}
+        <ToastProvider>
+          {/* Navbar sadece belirli sayfalarda gösterilecek */}
+          {!hideNavbarPages.includes(pathname) && <Navbar />}
 
-        <main>{children}</main>
+          <main>{children}</main>
 
-        {/* Footer sadece belirli sayfalarda gösterilecek */}
-        {!hideFooterPages.includes(pathname) && <Footer />}
+          {/* Footer sadece belirli sayfalarda gösterilecek */}
+          {!hideFooterPages.includes(pathname) && <Footer />}
+        </ToastProvider>
       </body>
     </html>
   );

@@ -97,6 +97,15 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-xl shadow-lg">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Giriş Yap</h1>
+          <button
+            onClick={() => router.push("/admin/login")}
+            className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+          >
+            Admin Girişi
+          </button>
+        </div>
         <div className="flex justify-center mb-6">
           {roles.map((role) => (
             <button

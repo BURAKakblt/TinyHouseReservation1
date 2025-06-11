@@ -45,16 +45,29 @@ const OwnerDashboard = () => {
   const [selectedReview, setSelectedReview] = useState(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewResponse, setReviewResponse] = useState("");
+  const [popularHouses, setPopularHouses] = useState([]);
+  const [favorites, setFavorites] = useState([]);
+  const [userId, setUserId] = useState(null);
 
   useEffect(() => {
     const storedEmail = localStorage.getItem("email");
     const storedRole = localStorage.getItem("role");
+    const uid = localStorage.getItem("userId");
+    setUserId(uid);
     if (!storedEmail || storedRole !== "owner") {
       router.push("/login");
       return;
     }
     setEmail(storedEmail);
     fetchOwnerData(storedEmail);
+    if (uid) {
+      fetch(`http://localhost:5254/api/favorites/${uid}`)
+        .then(res => res.json())
+        .then(setFavorites);
+    }
+    fetch("http://localhost:5254/api/houses/popular")
+      .then(res => res.json())
+      .then(setPopularHouses);
   }, []);
 
   const fetchOwnerData = async (ownerEmail) => {
@@ -176,6 +189,23 @@ const OwnerDashboard = () => {
       monthlyData,
       houseData
     };
+  };
+
+  const handleFavorite = async (houseId, isFav) => {
+    if (!userId) return;
+    if (isFav) {
+      await fetch(`http://localhost:5254/api/favorites?userId=${userId}&houseId=${houseId}`, { method: "DELETE" });
+    } else {
+      await fetch("http://localhost:5254/api/favorites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ UserID: userId, HouseID: houseId })
+      });
+    }
+    // Favoriler listesini güncelle
+    fetch(`http://localhost:5254/api/favorites/${userId}`)
+      .then(res => res.json())
+      .then(setFavorites);
   };
 
   if (loading) return <div className="p-8">Yükleniyor...</div>;
@@ -683,6 +713,43 @@ const OwnerDashboard = () => {
             </div>
           </div>
         )}
+
+        {/* Popüler Evler */}
+        <div className="max-w-7xl mx-auto mb-8 px-4">
+          <h3 className="text-lg font-bold mb-4 text-black">Popüler Evler</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {popularHouses.map((house) => (
+              <div key={house.HouseID} className="bg-white rounded-xl shadow p-4 border border-blue-100">
+                <img src={house.CoverImageUrl ? `http://localhost:5254${house.CoverImageUrl}` : "/default-house.jpg"} alt={house.Title} className="w-full h-32 object-cover rounded" />
+                <h4 className="font-bold mt-2">{house.Title}</h4>
+                <p className="text-gray-600">{house.City}, {house.Country}</p>
+                <p className="text-yellow-600 font-bold">★ {house.Rating}</p>
+                <p className="text-blue-700 font-bold">{house.PricePerNight} TL/gece</p>
+                <button onClick={() => handleFavorite(house.HouseID, favorites.some(f => f.HouseID === house.HouseID))} className="mt-2">
+                  {favorites.some(f => f.HouseID === house.HouseID) ? "❤️ Favori" : "🤍 Favorilere Ekle"}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Favorilerim */}
+        <div className="max-w-7xl mx-auto mb-8 px-4">
+          <h3 className="text-lg font-bold mb-4 text-black">Favori Evlerim</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {favorites.length === 0 && <div>Henüz favoriniz yok.</div>}
+            {favorites.map((house) => (
+              <div key={house.HouseID} className="bg-white rounded-xl shadow p-4 border border-pink-100">
+                <img src={house.CoverImageUrl ? `http://localhost:5254${house.CoverImageUrl}` : "/default-house.jpg"} alt={house.Title} className="w-full h-32 object-cover rounded" />
+                <h4 className="font-bold mt-2">{house.Title}</h4>
+                <p className="text-gray-600">{house.City}, {house.Country}</p>
+                <p className="text-yellow-600 font-bold">★ {house.Rating}</p>
+                <p className="text-blue-700 font-bold">{house.PricePerNight} TL/gece</p>
+                <button onClick={() => handleFavorite(house.HouseID, true)} className="mt-2">Favoriden Çıkar</button>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

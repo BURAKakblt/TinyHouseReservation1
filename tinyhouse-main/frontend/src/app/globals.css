@@ -4,8 +4,16 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f5f5f5;
+  --foreground: #222;
+  --accent: #111;
+  --button-purple: #7c3aed;
+  --button-purple-hover: #6d28d9;
+  --button-red: #ef4444;
+  --button-red-hover: #dc2626;
+  --card-bg: #fff;
+  --card-border: #e5e7eb;
+  --star: #fbbf24;
 }
 
 @theme inline {
@@ -26,4 +34,79 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--accent);
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-weight: bold;
+}
+
+button, .btn {
+  background: var(--button-purple);
+  color: #fff;
+  border-radius: 8px;
+  padding: 0.5rem 1.2rem;
+  font-weight: 600;
+  border: none;
+  transition: background 0.2s, color 0.2s;
+}
+button:hover, .btn:hover {
+  background: var(--button-purple-hover);
+}
+.btn-red {
+  background: var(--button-red);
+  color: #fff;
+}
+.btn-red:hover {
+  background: var(--button-red-hover);
+}
+
+.card, .house-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px 0 rgba(0,0,0,0.10);
+  border: 2px solid #ececec;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.card:hover, .house-card:hover {
+  box-shadow: 0 8px 32px 0 rgba(0,0,0,0.16);
+  transform: translateY(-4px) scale(1.03);
+}
+
+.star {
+  color: var(--star);
+}
+
+input, select {
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  padding: 0.5rem 1rem;
+  background: #fff;
+  color: var(--foreground);
+}
+
+/* Placeholder yazılarını daha koyu ve belirgin yap */
+input::placeholder, textarea::placeholder {
+  color: #666;
+  opacity: 1;
+  font-weight: 500;
+}
+
+/* Takvim ve form alanlarında ekstra kontrast için genel bir class */
+.text-strong {
+  color: #111 !important;
+  font-weight: 600;
+}
+
+/* Takvimdeki dolu günler için daha belirgin kırmızı */
+.calendar-day-full, .calendar-day-full span {
+  color: #d90429 !important;
+  font-weight: bold;
+}
+
+/* Takvimdeki müsait günler için daha belirgin yeşil */
+.calendar-day-available, .calendar-day-available span {
+  color: #008000 !important;
+  font-weight: bold;
 }

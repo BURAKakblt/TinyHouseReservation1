@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import useToast from "../components/useToast";
 
 export default function NewHouseForm() {
   const [email, setEmail] = useState("");
@@ -161,12 +162,11 @@ export default function NewHouseForm() {
   // SİL: DB'den ve listeden kaldır
   const handleDelete = async (id) => {
     if (!window.confirm("Bu evi silmek istediğinizden emin misiniz?")) return;
-
+    const showToast = useToast();
     try {
       const res = await fetch(`http://localhost:5254/api/houses/${id}`, {
         method: "DELETE",
       });
-
       if (!res.ok) {
         const text = await res.text();
         let errorMessage = "Silme işlemi başarısız oldu";
@@ -176,17 +176,15 @@ export default function NewHouseForm() {
         } catch (e) {
           console.error("JSON parse hatası:", e);
         }
+        showToast({ message: errorMessage, type: "error" });
         throw new Error(errorMessage);
       }
-
-      // Başarılı silme işlemi
-      alert("Ev başarıyla silindi!");
-      
+      showToast({ message: "Ev başarıyla silindi!", type: "success" });
       // Listeyi güncelle
       await fetchHouses(email);
     } catch (error) {
       console.error("Silme hatası:", error);
-      alert(error.message || "Silme işlemi sırasında bir hata oluştu");
+      showToast({ message: error.message || "Silme işlemi sırasında bir hata oluştu", type: "error" });
     }
   };
 

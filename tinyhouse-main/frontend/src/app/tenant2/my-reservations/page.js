@@ -15,6 +15,8 @@ export default function MyReservations() {
     comment: "",
   });
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [cancelSuccess, setCancelSuccess] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState(false);
 
   useEffect(() => {
     fetchReservations();
@@ -24,13 +26,14 @@ export default function MyReservations() {
     try {
       setLoading(true);
       const email = localStorage.getItem("email");
-      const response = await fetch(`http://localhost:5254/api/reservations/user/${email}`);
+      const response = await fetch(`http://localhost:5254/api/reservations/by-${email}`);
       
       if (!response.ok) {
         throw new Error("Rezervasyonlar yüklenemedi");
       }
       
       const data = await response.json();
+      console.log("Gelen rezervasyonlar:", data);
       setReservations(data);
     } catch (err) {
       setError(err.message);
@@ -46,14 +49,15 @@ export default function MyReservations() {
 
     try {
       const response = await fetch(`http://localhost:5254/api/reservations/${reservationId}/cancel`, {
-        method: "POST",
+        method: "PUT",
       });
 
       if (!response.ok) {
         throw new Error("Rezervasyon iptal edilemedi");
       }
 
-      alert("Rezervasyon başarıyla iptal edildi");
+      setCancelSuccess(true);
+      setTimeout(() => setCancelSuccess(false), 2000);
       fetchReservations();
     } catch (err) {
       alert(err.message);
@@ -85,6 +89,11 @@ export default function MyReservations() {
 
     if (reservation.status === "cancelled") {
       return "cancelled";
+    } else if (reservation.status === "Paid") {
+      // Backend'den yeni eklenen rezervasyonlar için
+      if (today < checkIn) return "upcoming";
+      if (today >= checkIn && today <= checkOut) return "active";
+      if (today > checkOut) return "completed";
     } else if (today > checkOut) {
       return "completed";
     } else if (today >= checkIn && today <= checkOut) {
@@ -123,7 +132,8 @@ export default function MyReservations() {
         throw new Error("Değerlendirme kaydedilemedi");
       }
 
-      alert("Değerlendirmeniz başarıyla kaydedildi!");
+      setReviewSuccess(true);
+      setTimeout(() => setReviewSuccess(false), 2000);
       setSelectedReservation(null);
       setReviewForm({ rating: 0, comment: "" });
       fetchReservations();
@@ -132,6 +142,28 @@ export default function MyReservations() {
     } finally {
       setIsSubmittingReview(false);
     }
+  };
+
+  // Modal bileşeni
+  const ReservationModal = ({ reservation, onClose }) => {
+    if (!reservation) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+        <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-8 w-full max-w-md relative animate-fadeIn">
+          <button onClick={onClose} className="absolute top-3 right-3 text-white bg-purple-600 hover:bg-purple-700 rounded-full w-9 h-9 flex items-center justify-center text-2xl font-bold shadow-md transition">&times;</button>
+          <h2 className="text-2xl font-extrabold mb-6 text-center text-purple-700 tracking-wide">Rezervasyon Detayları</h2>
+          <div className="space-y-3 text-base">
+            <div><span className="font-semibold text-gray-700">Ev:</span> <span className="text-gray-900 font-bold">{reservation.house.title}</span></div>
+            <div><span className="font-semibold text-gray-700">Konum:</span> <span className="text-gray-900">{reservation.house.location || '-'}</span></div>
+            <div><span className="font-semibold text-gray-700">Giriş Tarihi:</span> <span className="text-gray-900">{new Date(reservation.checkIn).toLocaleDateString()}</span></div>
+            <div><span className="font-semibold text-gray-700">Çıkış Tarihi:</span> <span className="text-gray-900">{new Date(reservation.checkOut).toLocaleDateString()}</span></div>
+            <div><span className="font-semibold text-gray-700">Kişi:</span> <span className="text-gray-900">{reservation.guests}</span></div>
+            <div><span className="font-semibold text-gray-700">Toplam Fiyat:</span> <span className="text-green-700 font-bold text-lg">{reservation.totalPrice} TL</span></div>
+            <div><span className="font-semibold text-gray-700">Durum:</span> <span className="inline-block px-2 py-1 rounded bg-purple-100 text-purple-700 font-semibold text-sm">{reservation.status}</span></div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -163,6 +195,7 @@ export default function MyReservations() {
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
+      <ReservationModal reservation={selectedReservation} onClose={() => setSelectedReservation(null)} />
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Rezervasyonlarım</h1>
@@ -268,10 +301,8 @@ export default function MyReservations() {
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() =>
-                            router.push(`/tenant2/reservation-confirmation/${reservation.id}`)
-                          }
-                          className="bg-gray-100 text-gray-800 px-4 py-2 rounded hover:bg-gray-200"
+                          onClick={() => setSelectedReservation(reservation)}
+                          className="bg-purple-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-purple-700 transition"
                         >
                           Detaylar
                         </button>
@@ -374,6 +405,18 @@ export default function MyReservations() {
                 </div>
               </form>
             </div>
+          </div>
+        )}
+
+        {cancelSuccess && (
+          <div className="fixed top-8 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded shadow-lg z-50">
+            Rezervasyon başarıyla iptal edildi!
+          </div>
+        )}
+
+        {reviewSuccess && (
+          <div className="fixed top-8 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded shadow-lg z-50">
+            Değerlendirmeniz başarıyla kaydedildi!
           </div>
         )}
       </div>

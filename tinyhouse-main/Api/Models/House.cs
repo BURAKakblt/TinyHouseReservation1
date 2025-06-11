@@ -4,38 +4,27 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Api.Models;
 
-namespace Api.Models;
-
-public class House
+namespace TinyHouse.Api.Models
 {
-    public int Id { get; set; }
-    
-    [Required]
-    public string Title { get; set; }
-    
-    [Required]
-    public string Description { get; set; }
-    
-    [Required]
-    public string Location { get; set; }
-    
-    [Required]
-    public decimal Price { get; set; }
-    
-    [Required]
-    public string OwnerEmail { get; set; }
-    
-    public List<string> Images { get; set; } = new List<string>();
-    
-    public List<string> Amenities { get; set; } = new List<string>();
-    
-    public double Rating { get; set; }
-    
-    public int ReviewCount { get; set; }
-    
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    
-    // Navigation properties
-    public List<Reservation> Reservations { get; set; } = new List<Reservation>();
-    public List<Review> Reviews { get; set; } = new List<Review>();
+    public class House
+    {
+        public int HouseID { get; set; }
+        public int OwnerID { get; set; }
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string City { get; set; } = "";
+        public string Country { get; set; } = "";
+        public int Bedrooms { get; set; }
+        public int Bathrooms { get; set; }
+        public decimal PricePerNight { get; set; }
+        public string CoverImageUrl { get; set; } = "";
+        public int TotalReservations { get; set; }
+        public double Rating { get; set; }
+        public string InteriorImageUrl { get; set; } = "";
+        public bool? IsAvailable { get; set; }
+        public string HouseType { get; set; } = "";
+        public int? MaxGuests { get; set; }
+        public string Features { get; set; } = "";
+        public string Location { get; set; } = "";
+    }
 }
