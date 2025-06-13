@@ -1,6 +1,7 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function EditHouse({ params }) {
   const router = useRouter();
@@ -48,7 +49,7 @@ export default function EditHouse({ params }) {
 
       setSuccess(true);
       setTimeout(() => {
-        router.push('/owner2/dashboard');
+        router.push('/admin/dashboard');
       }, 2000);
     } catch (error) {
       setError(error.message);
@@ -80,7 +81,7 @@ export default function EditHouse({ params }) {
         <div className="text-center">
           <p className="text-red-600">{error}</p>
           <button
-            onClick={() => router.push('/owner2/dashboard')}
+            onClick={() => router.push('/admin/dashboard')}
             className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
           >
             Geri Dön
@@ -266,7 +267,7 @@ export default function EditHouse({ params }) {
             <div className="flex justify-end space-x-4">
               <button
                 type="button"
-                onClick={() => router.push('/owner2/dashboard')}
+                onClick={() => router.push('/admin/dashboard')}
                 className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200"
               >
                 İptal

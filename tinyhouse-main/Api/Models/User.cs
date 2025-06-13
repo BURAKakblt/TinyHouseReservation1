@@ -18,7 +18,7 @@ namespace TinyHouse.Api.Models
         public string FirstName { get; set; } = string.Empty;
 
         [Required]
-        public string LastName { get; set; } = string.Empty;
+        public string? LastName { get; set; }
 
         [Required]
         public string Role { get; set; } = string.Empty;
@@ -27,5 +27,7 @@ namespace TinyHouse.Api.Models
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public bool IsActive { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public int RoleID { get; set; }
     }
 } 

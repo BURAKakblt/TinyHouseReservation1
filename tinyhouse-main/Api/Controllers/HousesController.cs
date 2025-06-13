@@ -56,7 +56,9 @@ namespace Api.Controllers
                         HouseType = row.Table.Columns.Contains("HouseType") && row["HouseType"] != DBNull.Value ? row["HouseType"].ToString() ?? "" : "",
                         MaxGuests = row.Table.Columns.Contains("MaxGuests") && row["MaxGuests"] != DBNull.Value ? (int?)Convert.ToInt32(row["MaxGuests"]) : null,
                         Features = row.Table.Columns.Contains("Features") && row["Features"] != DBNull.Value ? row["Features"].ToString() ?? "" : "",
-                        Location = row.Table.Columns.Contains("Location") && row["Location"] != DBNull.Value ? row["Location"].ToString() ?? "" : ""
+                        Location = row.Table.Columns.Contains("Location") && row["Location"] != DBNull.Value ? row["Location"].ToString() ?? "" : "",
+                        CreatedAt = row.Table.Columns.Contains("CreatedAt") && row["CreatedAt"] != DBNull.Value ? Convert.ToDateTime(row["CreatedAt"]) : DateTime.Now,
+                        UpdatedAt = row.Table.Columns.Contains("UpdatedAt") && row["UpdatedAt"] != DBNull.Value ? Convert.ToDateTime(row["UpdatedAt"]) : null
                     });
                 }
 
@@ -107,7 +109,9 @@ namespace Api.Controllers
                     HouseType = row.Table.Columns.Contains("HouseType") && row["HouseType"] != DBNull.Value ? row["HouseType"].ToString() ?? "" : "",
                     MaxGuests = row.Table.Columns.Contains("MaxGuests") && row["MaxGuests"] != DBNull.Value ? (int?)Convert.ToInt32(row["MaxGuests"]) : null,
                     Features = row.Table.Columns.Contains("Features") && row["Features"] != DBNull.Value ? row["Features"].ToString() ?? "" : "",
-                    Location = row.Table.Columns.Contains("Location") && row["Location"] != DBNull.Value ? row["Location"].ToString() ?? "" : ""
+                    Location = row.Table.Columns.Contains("Location") && row["Location"] != DBNull.Value ? row["Location"].ToString() ?? "" : "",
+                    CreatedAt = row.Table.Columns.Contains("CreatedAt") && row["CreatedAt"] != DBNull.Value ? Convert.ToDateTime(row["CreatedAt"]) : DateTime.Now,
+                    UpdatedAt = row.Table.Columns.Contains("UpdatedAt") && row["UpdatedAt"] != DBNull.Value ? Convert.ToDateTime(row["UpdatedAt"]) : null
                 };
 
                 return Ok(house);
@@ -149,7 +153,9 @@ namespace Api.Controllers
                         HouseType = row.Table.Columns.Contains("HouseType") && row["HouseType"] != DBNull.Value ? row["HouseType"].ToString() ?? "" : "",
                         MaxGuests = row.Table.Columns.Contains("MaxGuests") && row["MaxGuests"] != DBNull.Value ? (int?)Convert.ToInt32(row["MaxGuests"]) : null,
                         Features = row.Table.Columns.Contains("Features") && row["Features"] != DBNull.Value ? row["Features"].ToString() ?? "" : "",
-                        Location = row.Table.Columns.Contains("Location") && row["Location"] != DBNull.Value ? row["Location"].ToString() ?? "" : ""
+                        Location = row.Table.Columns.Contains("Location") && row["Location"] != DBNull.Value ? row["Location"].ToString() ?? "" : "",
+                        CreatedAt = row.Table.Columns.Contains("CreatedAt") && row["CreatedAt"] != DBNull.Value ? Convert.ToDateTime(row["CreatedAt"]) : DateTime.Now,
+                        UpdatedAt = row.Table.Columns.Contains("UpdatedAt") && row["UpdatedAt"] != DBNull.Value ? Convert.ToDateTime(row["UpdatedAt"]) : null
                     });
                 }
                 return Ok(houses);
@@ -205,7 +211,9 @@ namespace Api.Controllers
                             HouseType = row.Table.Columns.Contains("HouseType") && row["HouseType"] != DBNull.Value ? row["HouseType"].ToString() ?? "" : "",
                             MaxGuests = row.Table.Columns.Contains("MaxGuests") && row["MaxGuests"] != DBNull.Value ? (int?)Convert.ToInt32(row["MaxGuests"]) : null,
                             Features = row.Table.Columns.Contains("Features") && row["Features"] != DBNull.Value ? row["Features"].ToString() ?? "" : "",
-                            Location = row.Table.Columns.Contains("Location") && row["Location"] != DBNull.Value ? row["Location"].ToString() ?? "" : ""
+                            Location = row.Table.Columns.Contains("Location") && row["Location"] != DBNull.Value ? row["Location"].ToString() ?? "" : "",
+                            CreatedAt = row.Table.Columns.Contains("CreatedAt") && row["CreatedAt"] != DBNull.Value ? Convert.ToDateTime(row["CreatedAt"]) : DateTime.Now,
+                            UpdatedAt = row.Table.Columns.Contains("UpdatedAt") && row["UpdatedAt"] != DBNull.Value ? Convert.ToDateTime(row["UpdatedAt"]) : null
                         });
                     }
                     return Ok(houses);
@@ -237,7 +245,9 @@ namespace Api.Controllers
                             HouseType = row.Table.Columns.Contains("HouseType") && row["HouseType"] != DBNull.Value ? row["HouseType"].ToString() ?? "" : "",
                             MaxGuests = row.Table.Columns.Contains("MaxGuests") && row["MaxGuests"] != DBNull.Value ? (int?)Convert.ToInt32(row["MaxGuests"]) : null,
                             Features = row.Table.Columns.Contains("Features") && row["Features"] != DBNull.Value ? row["Features"].ToString() ?? "" : "",
-                            Location = row.Table.Columns.Contains("Location") && row["Location"] != DBNull.Value ? row["Location"].ToString() ?? "" : ""
+                            Location = row.Table.Columns.Contains("Location") && row["Location"] != DBNull.Value ? row["Location"].ToString() ?? "" : "",
+                            CreatedAt = row.Table.Columns.Contains("CreatedAt") && row["CreatedAt"] != DBNull.Value ? Convert.ToDateTime(row["CreatedAt"]) : DateTime.Now,
+                            UpdatedAt = row.Table.Columns.Contains("UpdatedAt") && row["UpdatedAt"] != DBNull.Value ? Convert.ToDateTime(row["UpdatedAt"]) : null
                         });
                     }
                     return Ok(houses);
@@ -247,6 +257,63 @@ namespace Api.Controllers
             {
                 _logger.LogError(ex, "Error getting popular houses");
                 return StatusCode(500, new { message = $"Popüler evler getirilirken bir hata oluştu: {ex.Message}" });
+            }
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateHouse(int id, [FromBody] House house)
+        {
+            try
+            {
+                var query = @"UPDATE Houses 
+                            SET Title = @Title,
+                                Description = @Description,
+                                City = @City,
+                                Country = @Country,
+                                Bedrooms = @Bedrooms,
+                                Bathrooms = @Bathrooms,
+                                PricePerNight = @PricePerNight,
+                                CoverImageUrl = @CoverImageUrl,
+                                InteriorImageUrl = @InteriorImageUrl,
+                                IsAvailable = @IsAvailable,
+                                HouseType = @HouseType,
+                                MaxGuests = @MaxGuests,
+                                Features = @Features,
+                                Location = @Location,
+                                UpdatedAt = GETDATE()
+                            WHERE HouseID = @HouseID";
+
+                var parameters = new Dictionary<string, object>
+                {
+                    {"@HouseID", id},
+                    {"@Title", house.Title},
+                    {"@Description", house.Description},
+                    {"@City", house.City},
+                    {"@Country", house.Country},
+                    {"@Bedrooms", house.Bedrooms},
+                    {"@Bathrooms", house.Bathrooms},
+                    {"@PricePerNight", house.PricePerNight},
+                    {"@CoverImageUrl", house.CoverImageUrl},
+                    {"@InteriorImageUrl", house.InteriorImageUrl},
+                    {"@IsAvailable", house.IsAvailable ?? true},
+                    {"@HouseType", house.HouseType},
+                    {"@MaxGuests", house.MaxGuests ?? 2},
+                    {"@Features", house.Features},
+                    {"@Location", house.Location}
+                };
+
+                var affected = await _db.ExecuteNonQueryAsync(query, parameters);
+                if (affected == 0)
+                {
+                    return NotFound(new { message = "İlan bulunamadı." });
+                }
+
+                return Ok(new { message = "İlan başarıyla güncellendi." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating house with id: {Id}", id);
+                return StatusCode(500, new { message = $"İlan güncellenirken bir hata oluştu: {ex.Message}" });
             }
         }
     }

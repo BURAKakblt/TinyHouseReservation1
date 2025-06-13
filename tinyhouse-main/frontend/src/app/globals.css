@@ -110,3 +110,40 @@ input::placeholder, textarea::placeholder {
   color: #008000 !important;
   font-weight: bold;
 }
+
+.hero-section {
+  background: linear-gradient(135deg, #e0e7ff 0%, #fff 100%);
+  border-bottom-left-radius: 2rem;
+  border-bottom-right-radius: 2rem;
+  box-shadow: 0 8px 32px 0 rgba(0,0,0,0.10);
+  padding-bottom: 3rem;
+}
+.hero-img {
+  border-radius: 1.5rem;
+  box-shadow: 0 4px 24px 0 rgba(0,0,0,0.12);
+  object-fit: cover;
+}
+.modal-bg {
+  background: rgba(0,0,0,0.4);
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-content {
+  background: #fff;
+  border-radius: 1.25rem;
+  padding: 2rem;
+  box-shadow: 0 8px 32px 0 rgba(0,0,0,0.18);
+  position: relative;
+}
+.modal-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 1rem;
+  font-size: 1.5rem;
+  color: #888;
+  cursor: pointer;
+}

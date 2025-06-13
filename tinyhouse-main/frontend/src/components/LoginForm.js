@@ -111,6 +111,11 @@ export default function LoginForm({ userType }) {
             {showPassword ? "Gizle" : "Göster"}
           </button>
         </div>
+        <div className="text-right mt-1">
+          <button type="button" className="text-indigo-600 hover:underline text-sm font-medium" onClick={() => router.push('/forgot-password')}>
+            Şifremi Unuttum
+          </button>
+        </div>
       </div>
       <button
         type="submit"

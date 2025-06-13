@@ -9,7 +9,7 @@ const roles = [
   { key: "owner", label: "İlan Sahibi Olarak Kaydol" },
 ];
 
-export default function SignupPage() {
+export default function SignupPage({ isModal }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("tenant");
   const [name, setName] = useState("");
@@ -42,7 +42,7 @@ export default function SignupPage() {
           roleID: 2,
         };
       }
-      const response = await fetch("http://localhost:5254/api/signup", {
+      const response = await fetch("http://localhost:5254/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -62,8 +62,8 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-xl shadow-lg relative z-8">
+    <div className={isModal ? "w-full max-w-md bg-white p-6 rounded-xl shadow-lg" : "min-h-screen flex flex-col items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8"}>
+      <div className={isModal ? "" : "w-full max-w-md space-y-8 bg-white p-8 rounded-xl shadow-lg relative z-8"}>
         <div className="flex justify-center mb-6">
           {roles.map((role) => (
             <button

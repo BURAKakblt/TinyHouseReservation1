@@ -9,21 +9,6 @@ const roles = [
   { key: "owner", label: "İlan Sahibi Girişi" },
 ];
 
-function TestRedirectButton() {
-  const router = useRouter();
-  return (
-    <button
-      style={{marginTop: 40, padding: 10, background: "#4f46e5", color: "white", borderRadius: 8}}
-      onClick={() => {
-        console.log("TestRedirectButton: router.push çalıştı");
-        router.push("/tenant2");
-      }}
-    >
-      Test Yönlendirme (router.push)
-    </button>
-  );
-}
-
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState("tenant");
   const [email, setEmail] = useState("");
@@ -155,6 +140,11 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+              <div className="text-right mt-1">
+                <button type="button" className="text-indigo-600 hover:underline text-sm font-medium" onClick={() => router.push('/forgot-password')}>
+                  Şifremi Unuttum
+                </button>
+              </div>
             </div>
           </div>
           {error && <div className="text-red-500 text-sm text-center">{error}</div>}
@@ -173,9 +163,6 @@ export default function LoginPage() {
             </Link>
           </div>
         </form>
-      </div>
-      <div style={{display: "flex", justifyContent: "center"}}>
-        <TestRedirectButton />
       </div>
     </div>
   );

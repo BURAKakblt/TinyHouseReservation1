@@ -71,8 +71,10 @@ namespace Api.Controllers
                 return BadRequest(new { message = "Kullanıcı bulunamadı." });
             int userId = Convert.ToInt32(userIdObj);
 
+            // Rezervasyon ekle ve yeni ReservationID'yi al
             var query = @"INSERT INTO Reservations (HouseID, TenantID, StartDate, EndDate, Status, CreatedAt, TotalPrice, Guests)
-                          VALUES (@HouseID, @TenantID, @StartDate, @EndDate, @Status, GETDATE(), @TotalPrice, @Guests)";
+                          VALUES (@HouseID, @TenantID, @StartDate, @EndDate, @Status, GETDATE(), @TotalPrice, @Guests);
+                          SELECT SCOPE_IDENTITY();";
             var parameters = new Dictionary<string, object>
             {
                 {"@HouseID", dto.HouseID},
@@ -83,8 +85,23 @@ namespace Api.Controllers
                 {"@TotalPrice", dto.TotalPrice},
                 {"@Guests", dto.Guests}
             };
-            await _db.ExecuteNonQueryAsync(query, parameters);
-            return Ok(new { message = "Rezervasyon oluşturuldu." });
+            var reservationIdObj = await _db.ExecuteScalarAsync(query, parameters);
+            int reservationId = Convert.ToInt32(reservationIdObj);
+
+            // Payments tablosuna kayıt ekle
+            var insertPaymentQuery = @"INSERT INTO Payments (ReservationID, Amount, PaymentMethod, PaymentDate, Status)
+                                      VALUES (@ReservationID, @Amount, @PaymentMethod, @PaymentDate, @Status)";
+            var paymentParams = new Dictionary<string, object>
+            {
+                {"@ReservationID", reservationId},
+                {"@Amount", dto.TotalPrice},
+                {"@PaymentMethod", "Kredi Kartı"},
+                {"@PaymentDate", DateTime.Now},
+                {"@Status", "completed"}
+            };
+            await _db.ExecuteNonQueryAsync(insertPaymentQuery, paymentParams);
+
+            return Ok(new { message = "Rezervasyon ve ödeme kaydedildi." });
         }
     }
 

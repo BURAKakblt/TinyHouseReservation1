@@ -561,29 +561,49 @@ export default function OwnerDashboard() {
       <div className="max-w-7xl mx-auto mb-8 px-4">
         <h3 className="text-lg font-bold mb-4 text-black">Popüler Evler</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {popularHouses && popularHouses.length > 0 ? (
-            popularHouses.map((house, i) => (
-              <div key={house.HouseID ? `popular-${house.HouseID}` : `popular-index-${i}`} className="bg-white rounded-xl shadow p-4 border border-blue-100">
-                <img 
-                  src={house.CoverImageUrl ? `http://localhost:5254${house.CoverImageUrl}` : "/default-house.jpg"} 
-                  alt={house.Title} 
-                  className="w-full h-32 object-cover rounded" 
+          {houses.map((house) => (
+            <div key={house.HouseID} className="bg-white rounded-xl shadow-lg overflow-hidden">
+              <div className="relative">
+                <img
+                  src={house.CoverImageUrl || "/placeholder-house.jpg"}
+                  alt={house.Title}
+                  className="w-full h-48 object-cover"
                 />
-                <h4 className="font-bold mt-2">{house.Title}</h4>
-                <p className="text-gray-600">{house.City}, {house.Country}</p>
-                <p className="text-yellow-600 font-bold">★ {house.Rating?.toFixed(1) || "Henüz değerlendirilmemiş"}</p>
-                <p className="text-blue-700 font-bold">{house.PricePerNight?.toLocaleString('tr-TR')} TL/gece</p>
-                <button 
-                  onClick={() => handleFavorite(house.HouseID, favorites.some(f => f.HouseID === house.HouseID))} 
-                  className="mt-2 w-full bg-blue-100 text-blue-700 py-2 rounded-lg hover:bg-blue-200 transition-colors"
-                >
-                  {favorites.some(f => f.HouseID === house.HouseID) ? "❤️ Favori" : "🤍 Favorilere Ekle"}
-                </button>
+                <div className="absolute top-2 right-2 bg-white px-2 py-1 rounded-full text-sm font-semibold">
+                  {house.PricePerNight} TL/gece
+                </div>
               </div>
-            ))
-          ) : (
-            <div className="col-span-3 text-center text-gray-500">Henüz popüler ev bulunmuyor.</div>
-          )}
+              <div className="p-4">
+                <h3 className="text-xl font-bold mb-2">{house.Title}</h3>
+                <p className="text-gray-600 mb-2">{house.City}, {house.Country}</p>
+                <p className="text-gray-600 mb-2">Oluşturulma: {new Date(house.CreatedAt).toLocaleDateString('tr-TR')}</p>
+                <p className="text-gray-600 mb-4">Son Güncelleme: {house.UpdatedAt ? new Date(house.UpdatedAt).toLocaleDateString('tr-TR') : 'Güncellenmedi'}</p>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <span className="text-yellow-500 mr-1">★</span>
+                    <span>{house.Rating.toFixed(1)}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => router.push(`/owner2/edit-house/${house.HouseID}`)}
+                      className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
+                    >
+                      Düzenle
+                    </button>
+                    <button
+                      onClick={() => {
+                        setDeleteId(house.HouseID);
+                        setShowDeleteModal(true);
+                      }}
+                      className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+                    >
+                      Sil
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
