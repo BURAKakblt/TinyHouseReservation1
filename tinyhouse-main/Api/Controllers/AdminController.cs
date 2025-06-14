@@ -242,6 +242,7 @@ ORDER BY p.PaymentDate DESC;";
         }
 
         // --- REZERVASYON SİL/İPTAL ET ---
+        [HttpPut("/api/reservations/{id}/cancel")]
         [HttpPut("reservations/{id}/cancel")]
         public async Task<IActionResult> CancelReservation(int id)
         {
@@ -284,6 +285,35 @@ ORDER BY p.PaymentDate DESC;";
                 Status = payTable.Rows[0]["Status"]
             } : null;
             return Ok(new { lastUser, lastReservation, lastPayment });
+        }
+
+        [HttpPost("/api/reviews")]
+        public async Task<IActionResult> AddReview([FromBody] ReviewDto dto)
+        {
+            // Yorum ekle
+            var query = @"INSERT INTO Reviews (houseId, reservationId, userEmail, rating, comment, createdAt)
+                          VALUES (@houseId, @reservationId, @userEmail, @rating, @comment, GETDATE())";
+            var parameters = new Dictionary<string, object>
+            {
+                {"@houseId", dto.houseId},
+                {"@reservationId", dto.reservationId},
+                {"@userEmail", dto.email},
+                {"@rating", dto.rating},
+                {"@comment", dto.comment}
+            };
+            var affected = await _db.ExecuteNonQueryAsync(query, parameters);
+            if (affected == 0) return StatusCode(500, new { message = "Yorum kaydedilemedi." });
+            // (Opsiyonel) Ev sahibine mail gönderilebilir
+            return Ok(new { message = "Yorum kaydedildi." });
+        }
+
+        public class ReviewDto
+        {
+            public int houseId { get; set; }
+            public int reservationId { get; set; }
+            public int rating { get; set; }
+            public string comment { get; set; }
+            public string email { get; set; }
         }
     }
 } 

@@ -35,22 +35,25 @@ export default function HouseDetailClient({ id }) {
       try {
         setLoading(true);
         setError(null);
-        
         const response = await fetch(`http://localhost:5254/api/houses/${id}`);
-        
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData?.message || `HTTP error! status: ${response.status}`);
         }
-        
         const data = await response.json();
-        console.log("API'den gelen house:", data);
-        console.log("API'den gelen house anahtarları:", Object.keys(data));
+        // Kapak ve iç mekan görsellerini birleştir
+        let images = [];
+        if (data.coverImageUrl) images.push(data.coverImageUrl);
+        if (data.interiorImageUrl) {
+          const interiorImages = data.interiorImageUrl.split(',').map(x => x.trim()).filter(Boolean);
+          images = images.concat(interiorImages);
+        }
         setHouse({
           ...data,
+          images,
           HouseID: data.HouseID || data.id || data.houseId || id
         });
-        if (data.images && data.images.length > 0) {
+        if (images.length > 0) {
           setSelectedImage(0);
         }
       } catch (err) {
@@ -60,9 +63,7 @@ export default function HouseDetailClient({ id }) {
         setLoading(false);
       }
     };
-
     fetchHouseDetails();
-
     // Dolu günleri çek
     fetch(`/api/houses/${id}/booked-dates`)
       .then(res => res.json())

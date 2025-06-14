@@ -21,10 +21,62 @@ export default function PaymentPage() {
     return <div className="p-8 text-center text-red-600 font-bold">Rezervasyon bilgisi bulunamadı.</div>;
   }
 
+  // Kart numarası sadece rakam ve 16 hane
+  const handleCardNumber = (e) => {
+    let value = e.target.value.replace(/\D/g, "");
+    if (value.length > 16) value = value.slice(0, 16);
+    setCard(card => ({ ...card, number: value }));
+  };
+
+  // İsim sadece harf ve boşluk
+  const handleCardName = (e) => {
+    let value = e.target.value.replace(/[^a-zA-ZğüşöçıİĞÜŞÖÇ ]/g, "");
+    setCard(card => ({ ...card, name: value }));
+  };
+
+  // Son kullanma AA/YY
+  const handleExpiry = (e) => {
+    let value = e.target.value.replace(/[^0-9/]/g, "");
+    if (value.length === 2 && card.expiry.length === 1) value += "/";
+    if (value.length > 5) value = value.slice(0, 5);
+    setCard(card => ({ ...card, expiry: value }));
+  };
+
+  // CVC sadece 3 rakam
+  const handleCvc = (e) => {
+    let value = e.target.value.replace(/\D/g, "");
+    if (value.length > 3) value = value.slice(0, 3);
+    setCard(card => ({ ...card, cvc: value }));
+  };
+
   const handlePay = async () => {
     setError("");
     if (!card.number || !card.name || !card.expiry || !card.cvc) {
       setError("Lütfen tüm kart bilgilerini doldurun.");
+      return;
+    }
+    if (card.number.length !== 16) {
+      setError("Kart numarası 16 haneli olmalı ve sadece rakam içermeli.");
+      return;
+    }
+    if (!card.name.match(/^[a-zA-ZğüşöçıİĞÜŞÖÇ ]+$/)) {
+      setError("Kart üzerindeki isim sadece harf ve boşluk içermeli.");
+      return;
+    }
+    if (!card.expiry.match(/^(0[1-9]|1[0-2])\/[0-9]{2}$/)) {
+      setError("Son kullanma tarihi AA/YY formatında olmalı.");
+      return;
+    }
+    // Geçmiş tarih kontrolü
+    const [mm, yy] = card.expiry.split("/");
+    const now = new Date();
+    const expDate = new Date(`20${yy}`, mm - 1);
+    if (expDate < new Date(now.getFullYear(), now.getMonth())) {
+      setError("Son kullanma tarihi geçmiş olamaz.");
+      return;
+    }
+    if (card.cvc.length !== 3) {
+      setError("CVC 3 haneli olmalı ve sadece rakam içermeli.");
       return;
     }
     if (!reservation.houseID) {
@@ -103,20 +155,20 @@ export default function PaymentPage() {
         <form className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-800 mb-1">Kart Numarası</label>
-            <input type="text" value={card.number} onChange={e => setCard({ ...card, number: e.target.value })} className="w-full px-4 py-2 rounded-lg border border-gray-200" placeholder="1234 5678 9012 3456" />
+            <input type="text" value={card.number} onChange={handleCardNumber} className="w-full px-4 py-2 rounded-lg border border-gray-200 text-black" placeholder="1234567890123456" maxLength={16} />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-800 mb-1">Kart Üzerindeki İsim</label>
-            <input type="text" value={card.name} onChange={e => setCard({ ...card, name: e.target.value })} className="w-full px-4 py-2 rounded-lg border border-gray-200" placeholder="Ad Soyad" />
+            <input type="text" value={card.name} onChange={handleCardName} className="w-full px-4 py-2 rounded-lg border border-gray-200 text-black" placeholder="Ad Soyad" />
           </div>
           <div className="flex gap-2">
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-800 mb-1">Son Kullanma</label>
-              <input type="text" value={card.expiry} onChange={e => setCard({ ...card, expiry: e.target.value })} className="w-full px-4 py-2 rounded-lg border border-gray-200" placeholder="AA/YY" />
+              <input type="text" value={card.expiry} onChange={handleExpiry} className="w-full px-4 py-2 rounded-lg border border-gray-200 text-black" placeholder="AA/YY" maxLength={5} />
             </div>
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-800 mb-1">CVC</label>
-              <input type="text" value={card.cvc} onChange={e => setCard({ ...card, cvc: e.target.value })} className="w-full px-4 py-2 rounded-lg border border-gray-200" placeholder="123" />
+              <input type="text" value={card.cvc} onChange={handleCvc} className="w-full px-4 py-2 rounded-lg border border-gray-200 text-black" placeholder="123" maxLength={3} />
             </div>
           </div>
           {error && <div className="text-red-600 font-semibold text-center">{error}</div>}

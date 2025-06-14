@@ -87,6 +87,39 @@ export default function SearchResults() {
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-7xl mx-auto">
+        {/* Arama ve Filtreleme Bölümü */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <input
+                type="text"
+                placeholder="Konum veya ev adı ara..."
+                className="w-full px-4 py-2 border rounded-lg"
+                value={searchParams.get("location") || ""}
+                onChange={e => router.push(`/tenant2/search?location=${e.target.value}`)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <select
+                className="px-4 py-2 border rounded-lg"
+                value={searchParams.get("houseType") || ""}
+                onChange={e => router.push(`/tenant2/search?houseType=${e.target.value}`)}
+              >
+                <option value="">Ev Tipi</option>
+                <option value="tiny">Tiny House</option>
+                <option value="cabin">Cabin</option>
+                <option value="villa">Villa</option>
+              </select>
+              <button
+                className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                onClick={() => router.push(`/tenant2/search?location=${searchParams.get("location") || ""}&houseType=${searchParams.get("houseType") || ""}`)}
+              >
+                Ara
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Başlık ve Filtreler */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between items-center mb-4">

@@ -95,12 +95,13 @@ export default function SignupPage({ isModal }) {
                 <label className="block mb-1 text-gray-700">İsim</label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 border rounded placeholder-gray-400 text-gray-900"
+                  className="w-full px-4 py-2 border rounded placeholder-black text-black"
                   placeholder="Adınız"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
                   disabled={loading}
+                  style={{ color: '#000' }}
                 />
               </div>
             </>
@@ -111,12 +112,13 @@ export default function SignupPage({ isModal }) {
                 <label className="block mb-1 text-gray-700">Firma Adı</label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 border rounded placeholder-gray-400 text-gray-900"
+                  className="w-full px-4 py-2 border rounded placeholder-black text-black"
                   placeholder="Firma veya adınız"
                   value={company}
                   onChange={(e) => setCompany(e.target.value)}
                   required
                   disabled={loading}
+                  style={{ color: '#000' }}
                 />
               </div>
             </>
@@ -125,24 +127,26 @@ export default function SignupPage({ isModal }) {
             <label className="block mb-1 text-gray-700">Email</label>
             <input
               type="email"
-              className="w-full px-4 py-2 border rounded placeholder-gray-400 text-gray-900"
+              className="w-full px-4 py-2 border rounded placeholder-black text-black"
               placeholder="Email adresiniz"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={loading}
+              style={{ color: '#000' }}
             />
           </div>
           <div>
             <label className="block mb-1 text-gray-700">Şifre</label>
             <input
               type="password"
-              className="w-full px-4 py-2 border rounded placeholder-gray-400 text-gray-900"
+              className="w-full px-4 py-2 border rounded placeholder-black text-black"
               placeholder="Şifreniz"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               disabled={loading}
+              style={{ color: '#000' }}
             />
           </div>
           {error && <div className="text-red-500 text-sm text-center">{error}</div>}

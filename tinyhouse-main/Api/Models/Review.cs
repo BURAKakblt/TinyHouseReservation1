@@ -1,33 +1,32 @@
 using System;
 using System.ComponentModel.DataAnnotations;
-using TinyHouse.Api.Models;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Api.Models
+namespace TinyHouse.Api.Models
 {
-public class Review
-{
-    public int Id { get; set; }
+    public class Review
+    {
+        public int Id { get; set; }
         
         [Required]
-    public int HouseId { get; set; }
+        public int HouseId { get; set; }
         
         [Required]
-        public int ReservationId { get; set; }
-        
-        [Required]
-        public string UserEmail { get; set; }
+        public int UserId { get; set; }
         
         [Required]
         [Range(1, 5)]
-    public int Rating { get; set; }
+        public int Rating { get; set; }
         
         [Required]
         public string Comment { get; set; }
         
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         
-        // Navigation properties
-        public House House { get; set; }
-        public Reservation Reservation { get; set; }
+        [ForeignKey("HouseId")]
+        public virtual House House { get; set; }
+        
+        [ForeignKey("UserId")]
+        public virtual User User { get; set; }
     }
 }

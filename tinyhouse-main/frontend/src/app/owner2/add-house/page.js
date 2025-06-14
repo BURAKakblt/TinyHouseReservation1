@@ -55,13 +55,13 @@ export default function AddHouse() {
       formData.append("Description", houseData.description);
       formData.append("City", houseData.location);
       formData.append("Country", "Turkey");
-      formData.append("BedroomCount", houseData.bedrooms);
-      formData.append("BathroomCount", houseData.bathrooms);
-      formData.append("PricePerNight", houseData.price);
+      formData.append("Bedrooms", Number(houseData.bedrooms));
+      formData.append("Bathrooms", Number(houseData.bathrooms));
+      formData.append("PricePerNight", Number(houseData.price));
       formData.append("Rating", "5");
       formData.append("OwnerEmail", localStorage.getItem("email"));
       formData.append("HouseType", houseData.houseType);
-      formData.append("MaxGuests", houseData.maxGuests);
+      formData.append("MaxGuests", Number(houseData.maxGuests));
       if (coverImage) {
         formData.append("CoverImage", coverImage);
       }
@@ -81,8 +81,8 @@ export default function AddHouse() {
       if (response.ok) {
         router.push("/owner2/dashboard");
       } else {
-        const data = await response.json();
-        alert(data.message || "İlan eklenirken bir hata oluştu.");
+        let text = await response.text();
+        alert(text);
       }
     } catch (error) {
       alert("İlan eklenirken bir hata oluştu.");
@@ -115,7 +115,8 @@ export default function AddHouse() {
                   type="text"
                   value={houseData.title}
                   onChange={(e) => setHouseData({ ...houseData, title: e.target.value })}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-black placeholder-black"
+                  style={{ color: '#000' }}
                   required
                 />
               </div>
@@ -128,7 +129,8 @@ export default function AddHouse() {
                   type="text"
                   value={houseData.location}
                   onChange={(e) => setHouseData({ ...houseData, location: e.target.value })}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-black placeholder-black"
+                  style={{ color: '#000' }}
                   required
                 />
               </div>
@@ -141,7 +143,8 @@ export default function AddHouse() {
                   type="number"
                   value={houseData.price}
                   onChange={(e) => setHouseData({ ...houseData, price: e.target.value })}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-black placeholder-black"
+                  style={{ color: '#000' }}
                   required
                 />
               </div>
@@ -153,7 +156,8 @@ export default function AddHouse() {
                 <select
                   value={houseData.houseType}
                   onChange={(e) => setHouseData({ ...houseData, houseType: e.target.value })}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-black placeholder-black"
+                  style={{ color: '#000' }}
                 >
                   <option value="tiny-house">Tiny House</option>
                   <option value="cabin">Kabin</option>
@@ -171,32 +175,10 @@ export default function AddHouse() {
                 value={houseData.description}
                 onChange={(e) => setHouseData({ ...houseData, description: e.target.value })}
                 rows="4"
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-black placeholder-black"
+                style={{ color: '#000' }}
                 required
               />
-            </div>
-
-            {/* Özellikler */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Özellikler
-              </label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {["WiFi", "Klima", "Mutfak", "TV", "Park", "Havuz", "Bahçe", "Barbekü"].map((amenity) => (
-                  <button
-                    key={amenity}
-                    type="button"
-                    onClick={() => handleAmenityToggle(amenity)}
-                    className={`px-3 py-2 rounded-lg text-sm ${
-                      houseData.amenities.includes(amenity)
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    }`}
-                  >
-                    {amenity}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {/* Resimler */}
@@ -208,7 +190,8 @@ export default function AddHouse() {
                 type="file"
                 accept="image/*"
                 onChange={handleCoverImageChange}
-                className="w-full"
+                className="w-full text-black placeholder-black"
+                style={{ color: '#000' }}
               />
               {coverImage && (
                 <div className="mt-2">
@@ -227,7 +210,8 @@ export default function AddHouse() {
                 multiple
                 accept="image/*"
                 onChange={handleInteriorImagesChange}
-                className="w-full"
+                className="w-full text-black placeholder-black"
+                style={{ color: '#000' }}
               />
               <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2">
                 {previewUrls.map((url, index) => (
@@ -252,8 +236,9 @@ export default function AddHouse() {
                   type="number"
                   min="1"
                   value={houseData.maxGuests}
-                  onChange={(e) => setHouseData({ ...houseData, maxGuests: parseInt(e.target.value) })}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  onChange={(e) => setHouseData({ ...houseData, maxGuests: e.target.value === "" ? "" : parseInt(e.target.value) })}
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-black placeholder-black"
+                  style={{ color: '#000' }}
                   required
                 />
               </div>
@@ -266,8 +251,9 @@ export default function AddHouse() {
                   type="number"
                   min="1"
                   value={houseData.bedrooms}
-                  onChange={(e) => setHouseData({ ...houseData, bedrooms: parseInt(e.target.value) })}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  onChange={(e) => setHouseData({ ...houseData, bedrooms: e.target.value === "" ? "" : parseInt(e.target.value) })}
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-black placeholder-black"
+                  style={{ color: '#000' }}
                   required
                 />
               </div>
@@ -280,8 +266,9 @@ export default function AddHouse() {
                   type="number"
                   min="1"
                   value={houseData.bathrooms}
-                  onChange={(e) => setHouseData({ ...houseData, bathrooms: parseInt(e.target.value) })}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  onChange={(e) => setHouseData({ ...houseData, bathrooms: e.target.value === "" ? "" : parseInt(e.target.value) })}
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-black placeholder-black"
+                  style={{ color: '#000' }}
                   required
                 />
               </div>

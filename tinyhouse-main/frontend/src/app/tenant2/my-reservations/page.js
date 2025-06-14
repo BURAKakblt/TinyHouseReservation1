@@ -17,6 +17,10 @@ export default function MyReservations() {
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [cancelSuccess, setCancelSuccess] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelId, setCancelId] = useState(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
 
   useEffect(() => {
     fetchReservations();
@@ -43,19 +47,13 @@ export default function MyReservations() {
   };
 
   const handleCancelReservation = async (reservationId) => {
-    if (!confirm("Bu rezervasyonu iptal etmek istediğinizden emin misiniz?")) {
-      return;
-    }
-
     try {
       const response = await fetch(`http://localhost:5254/api/reservations/${reservationId}/cancel`, {
         method: "PUT",
       });
-
       if (!response.ok) {
         throw new Error("Rezervasyon iptal edilemedi");
       }
-
       setCancelSuccess(true);
       setTimeout(() => setCancelSuccess(false), 2000);
       fetchReservations();
@@ -110,15 +108,12 @@ export default function MyReservations() {
 
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedReservation) return;
-
     setIsSubmittingReview(true);
+    setReviewError("");
     try {
       const response = await fetch("http://localhost:5254/api/reviews", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           houseId: selectedReservation.house.id,
           reservationId: selectedReservation.id,
@@ -127,18 +122,15 @@ export default function MyReservations() {
           email: localStorage.getItem("email"),
         }),
       });
-
-      if (!response.ok) {
-        throw new Error("Değerlendirme kaydedilemedi");
-      }
-
-      setReviewSuccess(true);
-      setTimeout(() => setReviewSuccess(false), 2000);
-      setSelectedReservation(null);
+      if (!response.ok) throw new Error("Değerlendirme kaydedilemedi");
+      setShowReviewModal(false);
       setReviewForm({ rating: 0, comment: "" });
       fetchReservations();
+      setReviewSuccess(true);
+      setTimeout(() => setReviewSuccess(false), 3000);
     } catch (err) {
-      alert(err.message);
+      setReviewError(err.message || "Değerlendirme kaydedilemedi");
+      setTimeout(() => setReviewError("") , 3000);
     } finally {
       setIsSubmittingReview(false);
     }
@@ -308,7 +300,7 @@ export default function MyReservations() {
                         </button>
                         {getReservationStatus(reservation) === "upcoming" && (
                           <button
-                            onClick={() => handleCancelReservation(reservation.id)}
+                            onClick={() => { setShowCancelModal(true); setCancelId(reservation.id); }}
                             className="bg-red-100 text-red-600 px-4 py-2 rounded hover:bg-red-200"
                           >
                             İptal Et
@@ -316,8 +308,8 @@ export default function MyReservations() {
                         )}
                         {getReservationStatus(reservation) === "completed" && !reservation.review && (
                           <button
-                            onClick={() => setSelectedReservation(reservation)}
-                            className="bg-green-100 text-green-600 px-4 py-2 rounded hover:bg-green-200"
+                            onClick={() => { setShowReviewModal(true); setSelectedReservation(reservation); }}
+                            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
                           >
                             Değerlendir
                           </button>
@@ -344,67 +336,41 @@ export default function MyReservations() {
           </div>
         )}
 
-        {/* Değerlendirme Modal */}
-        {selectedReservation && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg p-6 max-w-lg w-full">
-              <h3 className="text-xl font-semibold mb-4">
-                {selectedReservation.house.title} - Değerlendirme
-              </h3>
-              <form onSubmit={handleReviewSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Puanınız
-                  </label>
-                  <div className="flex gap-2">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setReviewForm({ ...reviewForm, rating: star })}
-                        className="text-3xl focus:outline-none"
-                      >
-                        {star <= reviewForm.rating ? "★" : "☆"}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Yorumunuz
-                  </label>
-                  <textarea
-                    value={reviewForm.comment}
-                    onChange={(e) =>
-                      setReviewForm({ ...reviewForm, comment: e.target.value })
-                    }
-                    rows="4"
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    placeholder="Deneyiminizi paylaşın..."
-                    required
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedReservation(null);
-                      setReviewForm({ rating: 0, comment: "" });
-                    }}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                  >
-                    İptal
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmittingReview || reviewForm.rating === 0}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-blue-300"
-                  >
-                    {isSubmittingReview ? "Gönderiliyor..." : "Değerlendirmeyi Gönder"}
-                  </button>
-                </div>
-              </form>
-            </div>
+        {/* Değerlendirme Modalı */}
+        {showReviewModal && selectedReservation && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+            <form onSubmit={handleReviewSubmit} className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+              <h2 className="text-xl font-bold mb-4 text-purple-700">Ev Değerlendir</h2>
+              <div className="mb-4">
+                <label className="block mb-1 font-semibold text-black">Puan:</label>
+                <select
+                  value={reviewForm.rating}
+                  onChange={e => setReviewForm(f => ({ ...f, rating: Number(e.target.value) }))}
+                  className="w-full border rounded px-3 py-2 text-black"
+                  style={{ color: '#000', opacity: 1, background: '#fff' }}
+                  required
+                >
+                  <option value={0} style={{ color: '#888' }}>Puan seçin</option>
+                  {[1,2,3,4,5].map(n => <option key={n} value={n} style={{ color: '#000' }}>{n} Yıldız</option>)}
+                </select>
+              </div>
+              <div className="mb-4">
+                <label className="block mb-1 font-semibold text-black">Yorum:</label>
+                <textarea
+                  value={reviewForm.comment}
+                  onChange={e => setReviewForm(f => ({ ...f, comment: e.target.value }))}
+                  className="w-full border rounded px-3 py-2 text-black"
+                  rows={4}
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setShowReviewModal(false)} className="bg-gray-300 px-4 py-2 rounded">Vazgeç</button>
+                <button type="submit" disabled={isSubmittingReview} className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                  Gönder
+                </button>
+              </div>
+            </form>
           </div>
         )}
 
@@ -417,6 +383,40 @@ export default function MyReservations() {
         {reviewSuccess && (
           <div className="fixed top-8 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded shadow-lg z-50">
             Değerlendirmeniz başarıyla kaydedildi!
+          </div>
+        )}
+
+        {reviewError && (
+          <div className="fixed top-8 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded shadow-lg z-50">
+            {reviewError}
+          </div>
+        )}
+
+        {/* Modern İptal Onay Modali */}
+        {showCancelModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+            <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-sm text-center">
+              <h2 className="text-xl font-bold mb-4 text-red-600">Rezervasyonu İptal Et</h2>
+              <p>Bu rezervasyonu iptal etmek istediğinize emin misiniz?</p>
+              <div className="mt-6 flex justify-center gap-4">
+                <button
+                  onClick={async () => {
+                    await handleCancelReservation(cancelId);
+                    setShowCancelModal(false);
+                    setCancelId(null);
+                  }}
+                  className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                >
+                  Evet, İptal Et
+                </button>
+                <button
+                  onClick={() => { setShowCancelModal(false); setCancelId(null); }}
+                  className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+                >
+                  Vazgeç
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

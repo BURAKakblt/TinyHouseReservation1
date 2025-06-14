@@ -3,6 +3,9 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Api.Services;
 using TinyHouse.Api.Data;
+using TinyHouse.Api.Interfaces;
+using TinyHouse.Api.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +32,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 // Register services
 builder.Services.AddSingleton<DatabaseHelper>();
 builder.Services.AddScoped<IUserService, UserService>();
+
+// DbContext
+builder.Services.AddDbContext<HouseContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Services
+builder.Services.AddScoped<IHouseService, HouseService>();
 
 // Configure CORS
 builder.Services.AddCors(options =>

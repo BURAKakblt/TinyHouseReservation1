@@ -2,17 +2,30 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+function Toast({ message, type, onClose }) {
+  if (!message) return null;
+  return (
+    <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'} text-white`}>
+      <span>{type === 'success' ? '✔️' : '❌'}</span>
+      <span>{message}</span>
+      <button onClick={onClose} className="ml-4 text-white font-bold">Kapat</button>
+    </div>
+  );
+}
+
 export default function EditHouse({ params }) {
   const router = useRouter();
+  const { id } = React.use(params);
   const [house, setHouse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [toast, setToast] = useState({ message: '', type: '' });
 
   useEffect(() => {
     const fetchHouse = async () => {
       try {
-        const response = await fetch(`http://localhost:5254/api/houses/${params.id}`);
+        const response = await fetch(`http://localhost:5254/api/houses/${id}`);
         if (!response.ok) {
           throw new Error('İlan bilgileri alınamadı');
         }
@@ -26,15 +39,16 @@ export default function EditHouse({ params }) {
     };
 
     fetchHouse();
-  }, [params.id]);
+  }, [id]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setSuccess(false);
+    setToast({ message: '', type: '' });
 
     try {
-      const response = await fetch(`http://localhost:5254/api/houses/${params.id}`, {
+      const response = await fetch(`http://localhost:5254/api/houses/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -43,15 +57,21 @@ export default function EditHouse({ params }) {
       });
 
       if (!response.ok) {
-        throw new Error('İlan güncellenirken bir hata oluştu');
+        const data = await response.json().catch(() => ({}));
+        const msg = data.message || 'İlan güncellenirken bir hata oluştu';
+        setError(msg);
+        setToast({ message: msg, type: 'error' });
+        return;
       }
 
       setSuccess(true);
+      setToast({ message: 'İlan başarıyla güncellendi!', type: 'success' });
       setTimeout(() => {
         router.push('/owner2/dashboard');
       }, 2000);
     } catch (error) {
       setError(error.message);
+      setToast({ message: error.message, type: 'error' });
     }
   };
 
@@ -92,6 +112,7 @@ export default function EditHouse({ params }) {
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: '' })} />
       <div className="max-w-3xl mx-auto">
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-6">İlan Düzenle</h1>
@@ -110,7 +131,7 @@ export default function EditHouse({ params }) {
                 name="title"
                 value={house?.title || ''}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-black"
                 required
               />
             </div>
@@ -122,7 +143,7 @@ export default function EditHouse({ params }) {
                 value={house?.description || ''}
                 onChange={handleChange}
                 rows="4"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-black"
                 required
               />
             </div>
@@ -135,7 +156,7 @@ export default function EditHouse({ params }) {
                   name="city"
                   value={house?.city || ''}
                   onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-black placeholder-black"
                   required
                 />
               </div>
@@ -147,7 +168,7 @@ export default function EditHouse({ params }) {
                   name="country"
                   value={house?.country || ''}
                   onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-black placeholder-black"
                   required
                 />
               </div>
@@ -162,7 +183,7 @@ export default function EditHouse({ params }) {
                   value={house?.bedrooms || ''}
                   onChange={handleChange}
                   min="0"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-black placeholder-black"
                   required
                 />
               </div>
@@ -175,7 +196,7 @@ export default function EditHouse({ params }) {
                   value={house?.bathrooms || ''}
                   onChange={handleChange}
                   min="0"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-black placeholder-black"
                   required
                 />
               </div>
@@ -188,7 +209,7 @@ export default function EditHouse({ params }) {
                   value={house?.pricePerNight || ''}
                   onChange={handleChange}
                   min="0"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-black placeholder-black"
                   required
                 />
               </div>
@@ -199,16 +220,12 @@ export default function EditHouse({ params }) {
                 <label className="block text-sm font-medium text-gray-700">Ev Tipi</label>
                 <select
                   name="houseType"
-                  value={house?.houseType || ''}
+                  value={house?.houseType || 'Tiny House'}
                   onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-black placeholder-black"
                   required
                 >
-                  <option value="">Seçiniz</option>
-                  <option value="apartment">Daire</option>
-                  <option value="house">Ev</option>
-                  <option value="villa">Villa</option>
-                  <option value="cabin">Kabin</option>
+                  <option value="Tiny House" className="text-black">Tiny House</option>
                 </select>
               </div>
 
@@ -220,7 +237,7 @@ export default function EditHouse({ params }) {
                   value={house?.maxGuests || ''}
                   onChange={handleChange}
                   min="1"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-black placeholder-black"
                   required
                 />
               </div>
@@ -232,9 +249,8 @@ export default function EditHouse({ params }) {
                 name="features"
                 value={house?.features || ''}
                 onChange={handleChange}
-                rows="3"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="Her özelliği yeni satıra yazın"
+                rows="2"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-black"
               />
             </div>
 
@@ -245,7 +261,7 @@ export default function EditHouse({ params }) {
                 name="location"
                 value={house?.location || ''}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-black"
                 placeholder="Örn: Kadıköy, İstanbul"
               />
             </div>

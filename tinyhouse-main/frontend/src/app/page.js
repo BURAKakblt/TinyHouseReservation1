@@ -13,6 +13,33 @@ const HERO_IMAGE = "/ev-resmi.jpeg";
 
 const HomePage = () => {
   const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [popularHouses, setPopularHouses] = useState([]);
+  const [filters, setFilters] = useState({
+    priceRange: [0, 10000],
+    location: "",
+    houseType: "",
+    dateRange: { start: null, end: null }
+  });
+
+  useEffect(() => {
+    // Popüler evleri getir
+    fetchPopularHouses();
+  }, []);
+
+  const fetchPopularHouses = async () => {
+    try {
+      const response = await fetch("/api/houses/popular");
+      const data = await response.json();
+      setPopularHouses(data);
+    } catch (error) {
+      console.error("Popüler evler yüklenirken hata:", error);
+    }
+  };
+
+  const handleSearch = () => {
+    router.push(`/houses?search=${searchQuery}&priceMin=${filters.priceRange[0]}&priceMax=${filters.priceRange[1]}&location=${filters.location}&type=${filters.houseType}`);
+  };
 
   return (
     <div className="w-full min-h-screen bg-[#f5f5f5] flex flex-col">
@@ -25,6 +52,9 @@ const HomePage = () => {
           style={{height: '400px', maxWidth: '90vw'}}
         />
       </div>
+
+      {/* Popüler Evler ve diğer içerik burada devam edecek */}
+
       {/* Altında başlık, açıklama ve butonlar */}
       <div className="flex flex-col items-center justify-center w-full px-4 py-8 bg-transparent">
         <h1 className="text-5xl md:text-6xl font-extrabold mb-4 text-center tracking-tight text-black drop-shadow-lg">

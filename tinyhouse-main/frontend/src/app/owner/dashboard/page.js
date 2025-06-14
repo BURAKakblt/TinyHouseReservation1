@@ -48,6 +48,7 @@ const OwnerDashboard = () => {
   const [popularHouses, setPopularHouses] = useState([]);
   const [favorites, setFavorites] = useState([]);
   const [userId, setUserId] = useState(null);
+  const [selectedHouse, setSelectedHouse] = useState(null);
 
   useEffect(() => {
     const storedEmail = localStorage.getItem("email");
@@ -108,22 +109,54 @@ const OwnerDashboard = () => {
     }
   };
 
-  // İlan durumunu güncelle
-  const handleToggleStatus = async (houseID, currentStatus) => {
+  // İlan silme işlemi
+  const handleDeleteHouse = async (houseId) => {
+    if (!confirm('Bu ilanı silmek istediğinizden emin misiniz?')) return;
+    
     try {
-      const response = await fetch(`http://localhost:5254/api/houses/${houseID}/status`, {
+      const response = await fetch(`http://localhost:5254/api/houses/${houseId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.ok) {
+        // İlanı listeden kaldır
+        setHouses(houses.filter(h => h.houseID !== houseId));
+        alert('İlan başarıyla silindi');
+      } else {
+        throw new Error('İlan silinemedi');
+      }
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
+  // İlan durumunu güncelleme
+  const handleToggleStatus = async (houseId, currentStatus) => {
+    try {
+      const response = await fetch(`http://localhost:5254/api/houses/${houseId}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
         body: JSON.stringify({ isActive: !currentStatus })
       });
+
       if (response.ok) {
-        // Başarıyla güncellendi, ilanları tekrar çek
-        fetchOwnerData(email);
+        // İlan durumunu güncelle
+        setHouses(houses.map(h => 
+          h.houseID === houseId ? { ...h, isActive: !currentStatus } : h
+        ));
+        alert(`İlan ${!currentStatus ? 'aktif' : 'pasif'} duruma getirildi`);
       } else {
-        alert('Durum güncellenemedi!');
+        throw new Error('İlan durumu güncellenemedi');
       }
-    } catch (err) {
-      alert('Sunucu hatası!');
+    } catch (error) {
+      alert(error.message);
     }
   };
 
@@ -208,6 +241,32 @@ const OwnerDashboard = () => {
       .then(setFavorites);
   };
 
+  // Ev bazlı istatistikleri hesapla
+  const getHouseStats = (houseId) => {
+    const houseReservations = reservations.filter(r => r.houseID === houseId);
+    const houseReviews = reviews.filter(r => r.houseID === houseId);
+    const housePayments = payments.filter(p => p.houseID === houseId);
+
+    return {
+      totalIncome: housePayments.reduce((sum, p) => sum + (p.amount || 0), 0),
+      activeReservations: houseReservations.filter(r => r.status === "active").length,
+      totalReviews: houseReviews.length,
+      averageRating: houseReviews.length > 0 
+        ? (houseReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / houseReviews.length).toFixed(1)
+        : '-',
+      totalReservations: houseReservations.length,
+      monthlyIncome: housePayments.reduce((sum, p) => {
+        const paymentDate = new Date(p.paymentDate);
+        const currentDate = new Date();
+        if (paymentDate.getMonth() === currentDate.getMonth() && 
+            paymentDate.getFullYear() === currentDate.getFullYear()) {
+          return sum + (p.amount || 0);
+        }
+        return sum;
+      }, 0)
+    };
+  };
+
   if (loading) return <div className="p-8">Yükleniyor...</div>;
   if (error) return <div className="p-8 text-red-500">{error}</div>;
 
@@ -228,39 +287,113 @@ const OwnerDashboard = () => {
 
       {/* Ana İçerik */}
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        {/* Ev Seçimi */}
+        <div className="mb-8">
+          <select
+            onChange={(e) => setSelectedHouse(e.target.value)}
+            className="w-full md:w-64 p-2 border border-gray-300 rounded-md"
+            value={selectedHouse || ""}
+          >
+            <option value="">Tüm Evler</option>
+            {houses.map((house) => (
+              <option key={house.houseID} value={house.houseID}>
+                {house.title}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/* Özet Kartları */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div className="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
             <div className="p-5 flex flex-col items-center">
-              <span className="text-2xl font-bold text-black">{houses.length}</span>
-              <span className="text-sm font-semibold text-black mt-1">Toplam İlan</span>
+              <span className="text-2xl font-bold text-black">
+                {selectedHouse 
+                  ? getHouseStats(selectedHouse).totalIncome.toLocaleString()
+                  : payments.reduce((sum, p) => sum + (p.amount || 0), 0).toLocaleString()}
+              </span>
+              <span className="text-sm font-semibold text-black mt-1">Toplam Gelir (₺)</span>
             </div>
           </div>
           <div className="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
             <div className="p-5 flex flex-col items-center">
-              <span className="text-2xl font-bold text-black">{reservations.filter(r => r.status === "active").length}</span>
+              <span className="text-2xl font-bold text-black">
+                {selectedHouse
+                  ? getHouseStats(selectedHouse).activeReservations
+                  : reservations.filter(r => r.status === "active").length}
+              </span>
               <span className="text-sm font-semibold text-black mt-1">Aktif Rezervasyon</span>
             </div>
           </div>
           <div className="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
             <div className="p-5 flex flex-col items-center">
-              <span className="text-2xl font-bold text-black">₺{payments.reduce((sum, p) => sum + (p.amount || 0), 0).toLocaleString()}</span>
-              <span className="text-sm font-semibold text-black mt-1">Toplam Gelir</span>
-            </div>
-          </div>
-          <div className="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
-            <div className="p-5 flex flex-col items-center">
-              <span className="text-2xl font-bold text-black">{reviews.length}</span>
+              <span className="text-2xl font-bold text-black">
+                {selectedHouse
+                  ? getHouseStats(selectedHouse).totalReviews
+                  : reviews.length}
+              </span>
               <span className="text-sm font-semibold text-black mt-1">Toplam Yorum</span>
             </div>
           </div>
           <div className="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
             <div className="p-5 flex flex-col items-center">
-              <span className="text-2xl font-bold text-black">{reviews.length > 0 ? (reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length).toFixed(1) : '-'}</span>
+              <span className="text-2xl font-bold text-black">
+                {selectedHouse
+                  ? getHouseStats(selectedHouse).averageRating
+                  : (reviews.length > 0 
+                      ? (reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length).toFixed(1) 
+                      : '-')}
+              </span>
               <span className="text-sm font-semibold text-black mt-1">Ortalama Puan</span>
             </div>
           </div>
         </div>
+
+        {/* Seçili Ev Detayları */}
+        {selectedHouse && (
+          <div className="bg-white shadow rounded-lg mb-8 border border-gray-200">
+            <div className="px-4 py-5 sm:px-6">
+              <h2 className="text-xl font-bold text-black">
+                {houses.find(h => h.houseID === selectedHouse)?.title} - Detaylı İstatistikler
+              </h2>
+            </div>
+            <div className="border-t border-gray-200 p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-lg font-bold text-black mb-4">Aylık İstatistikler</h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-black">Bu Ayki Gelir:</span>
+                      <span className="font-bold text-black">₺{getHouseStats(selectedHouse).monthlyIncome.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-black">Toplam Rezervasyon:</span>
+                      <span className="font-bold text-black">{getHouseStats(selectedHouse).totalReservations}</span>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-black mb-4">Son Yorumlar</h3>
+                  <div className="space-y-4">
+                    {reviews
+                      .filter(r => r.houseID === selectedHouse)
+                      .slice(0, 3)
+                      .map(review => (
+                        <div key={review.reviewID} className="border-b pb-2">
+                          <div className="flex items-center mb-1">
+                            <span className="text-yellow-500 mr-2">★ {review.rating}</span>
+                            <span className="text-sm text-gray-600">{review.tenantEmail}</span>
+                          </div>
+                          <p className="text-sm text-black">{review.comment}</p>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Grafik Alanı (isteğe bağlı) */}
         <div className="bg-white shadow rounded-lg border border-gray-200 mb-8 p-6 flex flex-col items-center">
           <span className="text-lg font-bold text-black mb-2">Rezervasyonlar / Gelir Grafiği (Yakında)</span>
@@ -410,18 +543,30 @@ const OwnerDashboard = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {houses.map((house) => (
-                    <tr key={house.houseID}>
+                    <tr key={`house-${house.houseID}`}>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <img className="h-12 w-12 rounded object-cover border border-gray-300" src={house.coverImageUrl} alt="Kapak" />
+                        <img 
+                          src={house.coverImageUrl ? `http://localhost:5254${house.coverImageUrl}` : "/default-house.jpg"} 
+                          alt="Kapak" 
+                          className="h-12 w-12 rounded object-cover border border-gray-300" 
+                        />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-black font-bold">{house.title}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-black">{house.description}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-black">₺{house.pricePerNight}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-black">{house.createdAt ? new Date(house.createdAt).toLocaleDateString() : '-'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${house.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>{house.isActive ? "Aktif" : "Pasif"}</span>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-black max-w-xs truncate">{house.description}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
+                      <td className="px-6 py-4 whitespace-nowrap text-black">₺{house.pricePerNight}/gece</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-black">
+                        {house.createdAt ? new Date(house.createdAt).toLocaleDateString() : '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          house.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                        }`}>
+                          {house.isActive ? "Aktif" : "Pasif"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                         <Link
                           href={`/owner/edit-house/${house.houseID}`}
                           className="text-indigo-700 hover:text-indigo-900 font-bold"
@@ -430,9 +575,13 @@ const OwnerDashboard = () => {
                         </Link>
                         <button
                           onClick={() => handleToggleStatus(house.houseID, house.isActive)}
-                          className="text-yellow-700 hover:text-yellow-900 font-bold"
+                          className={`${
+                            house.isActive 
+                              ? "text-yellow-700 hover:text-yellow-900" 
+                              : "text-green-700 hover:text-green-900"
+                          } font-bold`}
                         >
-                          Durum Değiştir
+                          {house.isActive ? "Pasife Al" : "Aktife Al"}
                         </button>
                         <button
                           onClick={() => handleDeleteHouse(house.houseID)}
@@ -469,7 +618,7 @@ const OwnerDashboard = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {reservations.slice(0, 5).map((reservation) => (
-                    <tr key={reservation.reservationID}>
+                    <tr key={`reservation-${reservation.reservationID}`}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-black">{houses.find((h) => h.houseID === reservation.houseID)?.title}</div>
                       </td>
@@ -590,6 +739,59 @@ const OwnerDashboard = () => {
           </div>
         )}
 
+        {/* Popüler Evler */}
+        <div className="max-w-7xl mx-auto mb-8 px-4">
+          <h3 className="text-lg font-bold mb-4 text-black">Popüler Evler</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {popularHouses.map((house) => (
+              <div key={`popular-${house.HouseID}`} className="bg-white rounded-xl shadow p-4 border border-blue-100">
+                <img 
+                  src={house.CoverImageUrl ? `http://localhost:5254${house.CoverImageUrl}` : "/default-house.jpg"} 
+                  alt={house.Title} 
+                  className="w-full h-32 object-cover rounded" 
+                />
+                <h4 className="font-bold mt-2">{house.Title}</h4>
+                <p className="text-gray-600">{house.City}, {house.Country}</p>
+                <p className="text-yellow-600 font-bold">★ {house.Rating}</p>
+                <p className="text-blue-700 font-bold">{house.PricePerNight} TL/gece</p>
+                <button 
+                  onClick={() => handleFavorite(house.HouseID, favorites.some(f => f.HouseID === house.HouseID))} 
+                  className="mt-2"
+                >
+                  {favorites.some(f => f.HouseID === house.HouseID) ? "❤️ Favori" : "🤍 Favorilere Ekle"}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Favorilerim */}
+        <div className="max-w-7xl mx-auto mb-8 px-4">
+          <h3 className="text-lg font-bold mb-4 text-black">Favori Evlerim</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {favorites.length === 0 && <div key="no-favorites">Henüz favoriniz yok.</div>}
+            {favorites.map((house) => (
+              <div key={`favorite-${house.HouseID}`} className="bg-white rounded-xl shadow p-4 border border-pink-100">
+                <img 
+                  src={house.CoverImageUrl ? `http://localhost:5254${house.CoverImageUrl}` : "/default-house.jpg"} 
+                  alt={house.Title} 
+                  className="w-full h-32 object-cover rounded" 
+                />
+                <h4 className="font-bold mt-2">{house.Title}</h4>
+                <p className="text-gray-600">{house.City}, {house.Country}</p>
+                <p className="text-yellow-600 font-bold">★ {house.Rating}</p>
+                <p className="text-blue-700 font-bold">{house.PricePerNight} TL/gece</p>
+                <button 
+                  onClick={() => handleFavorite(house.HouseID, true)} 
+                  className="mt-2"
+                >
+                  Favoriden Çıkar
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Son Yorumlar */}
         <div className="bg-white shadow rounded-lg border border-gray-200">
           <div className="px-4 py-5 sm:px-6">
@@ -610,7 +812,7 @@ const OwnerDashboard = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {reviews.slice(0, 5).map((review) => (
-                    <tr key={review.reviewID}>
+                    <tr key={`review-${review.reviewID}`}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-black">{houses.find((h) => h.houseID === review.houseID)?.title}</div>
                       </td>
@@ -623,7 +825,7 @@ const OwnerDashboard = () => {
                           <div className="ml-2 flex">
                             {[...Array(5)].map((_, i) => (
                               <svg
-                                key={i}
+                                key={`star-${review.reviewID}-${i}`}
                                 className={`h-4 w-4 ${i < review.rating ? 'text-yellow-400' : 'text-gray-300'}`}
                                 fill="currentColor"
                                 viewBox="0 0 20 20"
@@ -662,7 +864,7 @@ const OwnerDashboard = () => {
 
         {/* Yorum Detay Modalı */}
         {showReviewModal && selectedReview && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
             <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
               <div className="mt-3">
                 <h3 className="text-lg font-bold text-black mb-4">Yorum Detayları</h3>
@@ -680,9 +882,7 @@ const OwnerDashboard = () => {
                     <span className="font-bold">Yorum:</span> {selectedReview.comment}
                   </p>
                   <div className="mt-4">
-                    <label className="block text-sm font-bold text-black mb-2">
-                      Cevabınız:
-                    </label>
+                    <label className="block mb-1 font-semibold text-black">Cevabınız:</label>
                     <textarea
                       value={reviewResponse}
                       onChange={(e) => setReviewResponse(e.target.value)}
@@ -702,8 +902,9 @@ const OwnerDashboard = () => {
                       onClick={() => {
                         setShowReviewModal(false);
                         setReviewResponse("");
+                        setSelectedReview(null);
                       }}
-                      className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors"
+                      className="bg-gray-400 text-white px-4 py-2 rounded-md hover:bg-gray-500 transition-colors"
                     >
                       İptal
                     </button>
@@ -713,43 +914,6 @@ const OwnerDashboard = () => {
             </div>
           </div>
         )}
-
-        {/* Popüler Evler */}
-        <div className="max-w-7xl mx-auto mb-8 px-4">
-          <h3 className="text-lg font-bold mb-4 text-black">Popüler Evler</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {popularHouses.map((house) => (
-              <div key={house.HouseID} className="bg-white rounded-xl shadow p-4 border border-blue-100">
-                <img src={house.CoverImageUrl ? `http://localhost:5254${house.CoverImageUrl}` : "/default-house.jpg"} alt={house.Title} className="w-full h-32 object-cover rounded" />
-                <h4 className="font-bold mt-2">{house.Title}</h4>
-                <p className="text-gray-600">{house.City}, {house.Country}</p>
-                <p className="text-yellow-600 font-bold">★ {house.Rating}</p>
-                <p className="text-blue-700 font-bold">{house.PricePerNight} TL/gece</p>
-                <button onClick={() => handleFavorite(house.HouseID, favorites.some(f => f.HouseID === house.HouseID))} className="mt-2">
-                  {favorites.some(f => f.HouseID === house.HouseID) ? "❤️ Favori" : "🤍 Favorilere Ekle"}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Favorilerim */}
-        <div className="max-w-7xl mx-auto mb-8 px-4">
-          <h3 className="text-lg font-bold mb-4 text-black">Favori Evlerim</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {favorites.length === 0 && <div>Henüz favoriniz yok.</div>}
-            {favorites.map((house) => (
-              <div key={house.HouseID} className="bg-white rounded-xl shadow p-4 border border-pink-100">
-                <img src={house.CoverImageUrl ? `http://localhost:5254${house.CoverImageUrl}` : "/default-house.jpg"} alt={house.Title} className="w-full h-32 object-cover rounded" />
-                <h4 className="font-bold mt-2">{house.Title}</h4>
-                <p className="text-gray-600">{house.City}, {house.Country}</p>
-                <p className="text-yellow-600 font-bold">★ {house.Rating}</p>
-                <p className="text-blue-700 font-bold">{house.PricePerNight} TL/gece</p>
-                <button onClick={() => handleFavorite(house.HouseID, true)} className="mt-2">Favoriden Çıkar</button>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );

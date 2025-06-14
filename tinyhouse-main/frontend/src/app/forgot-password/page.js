@@ -25,15 +25,22 @@ export default function ForgotPasswordPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email })
       });
-      const data = await response.json();
-      if (response.ok) {
-        setSuccess("Doğrulama kodu e-posta adresinize gönderildi.");
-        setStep(2);
-      } else {
-        setError(data.message || "Bir hata oluştu.");
+      
+      if (!response.ok) {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const data = await response.json();
+          throw new Error(data.message || "Bir hata oluştu.");
+        } else {
+          throw new Error("Sunucu yanıtı geçersiz format.");
+        }
       }
+      
+      const data = await response.json();
+      setSuccess("Doğrulama kodu e-posta adresinize gönderildi.");
+      setStep(2);
     } catch (err) {
-      setError("Sunucuya ulaşılamadı.");
+      setError(err.message || "Sunucuya ulaşılamadı.");
     } finally {
       setLoading(false);
     }
@@ -51,15 +58,22 @@ export default function ForgotPasswordPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, code })
       });
-      const data = await response.json();
-      if (response.ok) {
-        setSuccess("Kod doğrulandı. Yeni şifrenizi belirleyin.");
-        setStep(3);
-      } else {
-        setError(data.message || "Kod yanlış veya süresi dolmuş.");
+      
+      if (!response.ok) {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const data = await response.json();
+          throw new Error(data.message || "Kod yanlış veya süresi dolmuş.");
+        } else {
+          throw new Error("Sunucu yanıtı geçersiz format.");
+        }
       }
+      
+      const data = await response.json();
+      setSuccess("Kod doğrulandı. Yeni şifrenizi belirleyin.");
+      setStep(3);
     } catch (err) {
-      setError("Sunucuya ulaşılamadı.");
+      setError(err.message || "Sunucuya ulaşılamadı.");
     } finally {
       setLoading(false);
     }
@@ -77,15 +91,22 @@ export default function ForgotPasswordPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, code, newPassword })
       });
-      const data = await response.json();
-      if (response.ok) {
-        setSuccess("Şifreniz başarıyla değiştirildi. Giriş sayfasına yönlendiriliyorsunuz...");
-        setTimeout(() => router.push("/login"), 2000);
-      } else {
-        setError(data.message || "Bir hata oluştu.");
+      
+      if (!response.ok) {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const data = await response.json();
+          throw new Error(data.message || "Bir hata oluştu.");
+        } else {
+          throw new Error("Sunucu yanıtı geçersiz format.");
+        }
       }
+      
+      const data = await response.json();
+      setSuccess("Şifreniz başarıyla değiştirildi. Giriş sayfasına yönlendiriliyorsunuz...");
+      setTimeout(() => router.push("/login"), 2000);
     } catch (err) {
-      setError("Sunucuya ulaşılamadı.");
+      setError(err.message || "Sunucuya ulaşılamadı.");
     } finally {
       setLoading(false);
     }
